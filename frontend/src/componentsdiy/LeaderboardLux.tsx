@@ -113,7 +113,7 @@ interface LeaderboardUser {
 
 export default function LeaderboardLux() {
   const [visible, setVisible] = useState(false);
-  const [hovered, setHovered] = useState<number | null>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 100);
