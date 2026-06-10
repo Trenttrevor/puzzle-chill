@@ -1,17 +1,17 @@
-import { Show } from "@clerk/react";
-import { Outlet, Navigate } from "react-router-dom";
+import { useAuth } from "@clerk/react";
+import { Navigate, Outlet } from "react-router";
 
-function ProtectedRoute() {
-  return (
-    <>
-      <Show when="signed-in">
-        <Outlet />
-      </Show>
-      <Show when="signed-out">
-        <Navigate to="/" replace />
-      </Show>
-    </>
-  );
+export default function ProtectedRoute() {
+  const { isLoaded, isSignedIn } = useAuth();
+
+  // Wait until Clerk is fully finished reading the cookie/token handshake
+  if (!isLoaded) return null;
+
+  // If the sync is done and they aren't logged in, send them home
+  if (!isSignedIn) {
+    return <Navigate to="/" replace />;
+  }
+
+  // If they are signed in, let them view the puzzle page!
+  return <Outlet />;
 }
-
-export default ProtectedRoute;
