@@ -7,6 +7,13 @@ import userRoutes from "./routes/userRoutes";
 
 const app = express();
 
+app.use(
+  cors({
+    origin: "https://chill-chess-indo.vercel.app",
+    credentials: true,
+  }),
+);
+
 app.use(clerkMiddleware());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -19,6 +26,8 @@ app.get("/", (req, res) => {
 
 app.use("/api/users", userRoutes);
 
-app.listen(ENV.PORT, () => {
-  console.log(`listening port ${ENV.PORT}`);
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
