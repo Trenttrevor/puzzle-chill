@@ -18,9 +18,6 @@ app.use(
   }),
 );
 
-// Explicitly handle OPTIONS preflight requests for all routes
-app.options("*", cors());
-
 app.use(clerkMiddleware());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
