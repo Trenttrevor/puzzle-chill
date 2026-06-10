@@ -1,6 +1,6 @@
 import express from "express";
 import { ENV } from "./config/env";
-import { clerkMiddleware } from "@clerk/express";
+import { clerkMiddleware, getAuth } from "@clerk/express";
 import cors from "cors";
 
 import userRoutes from "./routes/userRoutes";
@@ -17,6 +17,30 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
+
+app.use(clerkMiddleware());
+
+// 2. Define an array of your public routes (no login required)
+const publicRoutes = ["/api/auth/login", "/api/auth/register"];
+
+// 3. Create a clean, vanilla custom middleware step to enforce protection
+app.use((req, res, next) => {
+  // Check if the current request path is in our public routes array
+  const isPublic = publicRoutes.some((route) => req.path.startsWith(route));
+
+  if (isPublic) {
+    return next(); // Let them pass safely!
+  }
+
+  // Use Clerk's getAuth helper to retrieve the user's status safely
+  const auth = getAuth(req);
+
+  if (!auth.userId) {
+    return res.status(401).json({ error: "Unauthenticated" });
+  }
+
+  next();
+});
 
 app.use(clerkMiddleware());
 app.use(express.json());
