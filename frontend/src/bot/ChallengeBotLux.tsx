@@ -41,34 +41,13 @@ const css = `
     background-size: 56px 56px;
   }
 
-  /* NAV */
-  .cb-nav {
-    position: relative; z-index: 2;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 1.5rem; height: 52px;
-    border-bottom: 1px solid var(--border);
-    background: rgba(10,10,12,0.85);
-    backdrop-filter: blur(12px);
-    flex-shrink: 0;
-  }
-  .cb-logo {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 1.35rem; font-weight: 700;
-    color: var(--gold-light); letter-spacing: 0.04em;
-  }
-  .cb-logo span { color: var(--muted); font-weight: 400; font-size: 1rem; }
-  .cb-nav-badge {
-    font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase;
-    color: var(--gold); border: 1px solid var(--border);
-    padding: 0.2rem 0.7rem; border-radius: 100px;
-  }
-
-  /* BODY GRID */
+  /* BODY GRID — desktop */
   .cb-body {
     position: relative; z-index: 1;
     flex: 1; min-height: 0;
     display: grid;
     grid-template-columns: 200px 1fr 200px;
+    grid-template-areas: "left center right";
     overflow: hidden;
   }
 
@@ -78,8 +57,12 @@ const css = `
     padding: 1rem; gap: 0.7rem;
     border-right: 1px solid var(--border);
     overflow: hidden;
+    grid-area: left;
   }
-  .cb-panel-r { border-right: none; border-left: 1px solid var(--border); }
+  .cb-panel-r {
+    border-right: none; border-left: 1px solid var(--border);
+    grid-area: right;
+  }
 
   .cb-slabel {
     font-size: 0.68rem; letter-spacing: 0.2em;
@@ -159,6 +142,7 @@ const css = `
 
   /* CENTRE */
   .cb-center {
+    grid-area: center;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     padding: 0.6rem 1rem; gap: 0.5rem;
@@ -246,9 +230,133 @@ const css = `
   @keyframes fadeIn { from{opacity:0} to{opacity:1} }
   .cb-ov-icon  { font-family: 'Cormorant Garamond', serif; font-size: 3rem; }
   .cb-ov-title { font-family: 'Cormorant Garamond', serif; font-size: 1.9rem; font-weight: 700; margin: 0; }
-  .cb-ov-sub   { color: var(--muted); font-size: 0.77rem; }
+  .cb-ov-sub   { color: var(--muted); font-size: 0.77rem; text-align: center; padding: 0 1rem; }
   .cb-ov-btns  { display: flex; gap: 0.5rem; margin-top: 0.4rem; }
   .cb-ov-btns .cb-btn { width: auto; padding: 0.45rem 1.2rem; }
+
+  /* ── MOBILE TOP BAR ── */
+  .cb-mobile-top {
+    display: none;
+    position: relative; z-index: 1;
+    flex-direction: row; align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .cb-mobile-top::-webkit-scrollbar { display: none; }
+
+  /* ── MOBILE BOTTOM BAR ── */
+  .cb-mobile-bottom {
+    display: none;
+    position: relative; z-index: 1;
+    flex-direction: row; align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .cb-mobile-bottom::-webkit-scrollbar { display: none; }
+
+  /* shared chip style */
+  .cb-chip {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.28rem 0.6rem;
+    border: 1px solid var(--border); border-radius: 3px;
+    background: transparent; color: var(--muted);
+    font-family: 'DM Sans', sans-serif; font-size: 0.65rem;
+    white-space: nowrap; cursor: pointer; flex-shrink: 0;
+    transition: all 0.18s;
+  }
+  .cb-chip:hover { border-color: var(--gold-dim); color: var(--gold-light); }
+  .cb-chip-gold {
+    background: linear-gradient(135deg, var(--gold) 0%, #7a540f 100%);
+    border-color: transparent; color: #0a0a0c; font-weight: 600;
+  }
+  .cb-chip-danger { border-color: rgba(220,80,80,0.3); color: #b06060; }
+  .cb-chip-danger:hover { border-color: #e07070; color: #e07070; }
+
+  .cb-mb-divider { width: 1px; height: 16px; background: var(--border); flex-shrink: 0; }
+
+  /* mobile move log: horizontal scrollable row */
+  .cb-movelog-mobile {
+    display: flex; flex-direction: row; align-items: center;
+    gap: 0.3rem; overflow-x: auto; flex: 1;
+    scrollbar-width: none;
+  }
+  .cb-movelog-mobile::-webkit-scrollbar { display: none; }
+  .cb-move-token {
+    display: inline-flex; align-items: center; gap: 0.2rem;
+    font-size: 0.62rem; white-space: nowrap; flex-shrink: 0;
+  }
+  .cb-move-token-num { color: var(--muted); }
+  .cb-move-token-w   { color: var(--text); }
+  .cb-move-token-b   { color: var(--muted); }
+  .cb-move-token-latest { color: var(--gold-light) !important; }
+
+  /* thinking inline */
+  .cb-think-inline {
+    display: flex; align-items: center; gap: 0.25rem;
+    font-size: 0.6rem; color: var(--gold); flex-shrink: 0;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 680px) {
+    .cb-panel, .cb-panel-r { display: none; }
+    .cb-mobile-top    { display: flex; }
+    .cb-mobile-bottom { display: flex; }
+
+    .cb-body {
+      grid-template-columns: 1fr;
+      grid-template-areas: "center";
+    }
+
+    .cb-center {
+      padding: 0.45rem 0.5rem;
+      gap: 0.4rem;
+      justify-content: flex-start;
+    }
+
+    .cb-board-wrap {
+      width: calc(100vw - 1rem);
+    }
+
+    .cb-player-bar {
+      width: calc(100vw - 1rem);
+      padding: 0.25rem 0.5rem;
+      font-size: 0.7rem;
+    }
+
+    .cb-pname  { font-size: 0.68rem; }
+    .cb-prating { font-size: 0.58rem; }
+    .cb-captured { font-size: 0.62rem; }
+
+    .cb-status {
+      font-size: 0.62rem;
+      padding: 0.18rem 0.65rem;
+    }
+
+    .cb-ov-icon  { font-size: 2.2rem; }
+    .cb-ov-title { font-size: 1.5rem; }
+    .cb-ov-sub   { font-size: 0.68rem; }
+  }
+
+  @media (min-width: 681px) and (max-width: 900px) {
+    .cb-body { grid-template-columns: 150px 1fr 150px; }
+    .cb-panel, .cb-panel-r { padding: 0.75rem 0.65rem; gap: 0.55rem; }
+    .cb-slabel, .cb-slabel-glow { font-size: 0.6rem; }
+    .cb-btn { font-size: 0.68rem; padding: 0.42rem 0.5rem; }
+    .cb-board-wrap {
+      width: min(calc(100vh - 200px), calc(100vw - 320px));
+    }
+    .cb-player-bar {
+      width: min(calc(100vh - 200px), calc(100vw - 320px));
+    }
+  }
 `;
 
 /* ─────────────────────────────────────────────────────────
@@ -262,7 +370,7 @@ interface MovePair {
 }
 
 /* ─────────────────────────────────────────────────────────
-   HELPERS (pure, outside component — no closure issues)
+   HELPERS
    ───────────────────────────────────────────────────────── */
 function deriveStatus(game: Chess): GameStatus {
   if (game.isCheckmate()) return game.turn() === "w" ? "lost" : "won";
@@ -283,27 +391,23 @@ function deriveStatus(game: Chess): GameStatus {
 const ChallengeBotLux = () => {
   const chessRef = useRef<Chess>(new Chess());
 
-  // --- UI state ---
   const [fen, setFen] = useState(() => chessRef.current.fen());
   const [status, setStatus] = useState<GameStatus>("playing");
   const [isThinking, setIsThinking] = useState(false);
-  // const [tick, setTick] = useState(0); // forces re-render after ref mutation
 
-  // Move history and captured pieces live in refs → never cause double-recording
   const movePairsRef = useRef<MovePair[]>([]);
   const capturedBlackRef = useRef<string[]>([]);
   const capturedWhiteRef = useRef<string[]>([]);
   const moveLogRef = useRef<HTMLDivElement>(null);
+  const moveLogMobileRef = useRef<HTMLDivElement>(null);
 
-  // const forceUpdate = () => setTick((t) => t + 1);
+  const scrollLog = () => {
+    setTimeout(() => {
+      moveLogRef.current?.scrollTo({ top: 99999, behavior: "smooth" });
+      moveLogMobileRef.current?.scrollTo({ left: 99999, behavior: "smooth" });
+    }, 50);
+  };
 
-  const scrollLog = () =>
-    setTimeout(
-      () => moveLogRef.current?.scrollTo({ top: 99999, behavior: "smooth" }),
-      50,
-    );
-
-  // Append a white move: always opens a new pair
   const appendWhite = (san: string, pairNum: number) => {
     movePairsRef.current = [
       ...movePairsRef.current,
@@ -311,7 +415,6 @@ const ChallengeBotLux = () => {
     ];
   };
 
-  // Append a black move: always fills the last pair's black slot
   const appendBlack = (san: string) => {
     const pairs = movePairsRef.current;
     if (pairs.length === 0) return;
@@ -319,7 +422,6 @@ const ChallengeBotLux = () => {
     movePairsRef.current = [...pairs.slice(0, -1), { ...last, black: san }];
   };
 
-  /* Engine callback */
   const handleBestMove = useCallback((bestMove: string) => {
     const game = chessRef.current;
     if (!bestMove) return;
@@ -342,12 +444,10 @@ const ChallengeBotLux = () => {
     setFen(game.fen());
     setIsThinking(false);
     setStatus(deriveStatus(game));
-    // forceUpdate();
-  }, []); // chessRef is a ref — safe
+  }, []);
 
   const { getBestMove } = useStockfish(handleBestMove);
 
-  /* Player move handler */
   const playerMove = useCallback(
     ({ sourceSquare, targetSquare }: PieceDropHandlerArgs): boolean => {
       const game = chessRef.current;
@@ -361,8 +461,7 @@ const ChallengeBotLux = () => {
       });
       if (!move) return false;
 
-      // pairNum = full-move number from chess.js (increments after black moves)
-      const pairNum = game.moveNumber() - 1; // moveNumber already ticked after white
+      const pairNum = game.moveNumber() - 1;
       if (move.captured)
         capturedWhiteRef.current = [
           ...capturedWhiteRef.current,
@@ -374,7 +473,6 @@ const ChallengeBotLux = () => {
       setFen(game.fen());
       const newStatus = deriveStatus(game);
       setStatus(newStatus);
-      // forceUpdate();
 
       if (newStatus === "playing" || newStatus === "check") {
         setIsThinking(true);
@@ -387,7 +485,6 @@ const ChallengeBotLux = () => {
     [getBestMove],
   );
 
-  /* Reset */
   const resetGame = () => {
     chessRef.current = new Chess();
     movePairsRef.current = [];
@@ -396,14 +493,12 @@ const ChallengeBotLux = () => {
     setFen(chessRef.current.fen());
     setStatus("playing");
     setIsThinking(false);
-    // forceUpdate();
   };
 
-  /* Undo (remove both player + engine half-moves) */
   const undoMove = () => {
     const g = chessRef.current;
-    g.undo(); // engine (black)
-    g.undo(); // player (white)
+    g.undo();
+    g.undo();
 
     const pairs = movePairsRef.current;
     const last = pairs[pairs.length - 1];
@@ -421,16 +516,14 @@ const ChallengeBotLux = () => {
     setFen(g.fen());
     setStatus(deriveStatus(g));
     setIsThinking(false);
-    // forceUpdate();
   };
 
   const isOver = ["won", "lost", "draw"].includes(status);
-  // const game = chessRef.current;
   const pairs = movePairsRef.current;
 
   const statusLabel: Record<GameStatus, string> = {
     playing: "Your turn — play as White",
-    thinking: "Engine is thinking…",
+    thinking: "Engine thinking…",
     check: "Check! Defend your king",
     won: "You won by checkmate",
     lost: "Engine wins by checkmate",
@@ -441,40 +534,50 @@ const ChallengeBotLux = () => {
     <>
       <style>{css}</style>
       <div className="cb-page">
-        {/* NAV */}
         <NavbarLux />
 
+        {/* ── MOBILE TOP: move log ── */}
+        <div className="cb-mobile-top">
+          <div className="cb-movelog-mobile" ref={moveLogMobileRef}>
+            {pairs.length === 0 && (
+              <span style={{ fontSize: "0.62rem", color: "var(--muted)" }}>
+                No moves yet…
+              </span>
+            )}
+            {pairs.map((pair, i) => {
+              const isLast = i === pairs.length - 1;
+              return (
+                <span className="cb-move-token" key={pair.num}>
+                  <span className="cb-move-token-num">{pair.num}.</span>
+                  <span
+                    className={`cb-move-token-w${isLast && !pair.black ? " cb-move-token-latest" : ""}`}
+                  >
+                    {pair.white}
+                  </span>
+                  {pair.black && (
+                    <span
+                      className={`cb-move-token-b${isLast && pair.black ? " cb-move-token-latest" : ""}`}
+                    >
+                      {pair.black}
+                    </span>
+                  )}
+                </span>
+              );
+            })}
+            {isThinking && (
+              <div className="cb-think-inline">
+                <span className="cb-think-dot" />
+                <span className="cb-think-dot" />
+                <span className="cb-think-dot" />
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="cb-body">
-          {/* LEFT PANEL */}
+          {/* LEFT PANEL — desktop/tablet */}
           <div className="cb-panel">
             <p className="cb-slabel-glow">Challenge Bot</p>
-
-            {/* <p className="cb-slabel">Game</p>
-            <div className="cb-card">
-              <div className="cb-row">
-                <span className="cb-rl">Full moves</span>
-                <span className="cb-rv">{pairs.length}</span>
-              </div>
-              <div className="cb-row">
-                <span className="cb-rl">Turn</span>
-                <span
-                  className={`cb-rv ${game.turn() === "w" ? "cb-rv-g" : "cb-rv-b"}`}
-                >
-                  {game.turn() === "w" ? "White" : "Black"}
-                </span>
-              </div>
-              <div className="cb-row">
-                <span className="cb-rl">In Check</span>
-                <span className={`cb-rv ${game.inCheck() ? "cb-rv-r" : ""}`}>
-                  {game.inCheck() ? "Yes" : "No"}
-                </span>
-              </div>
-              <div className="cb-row">
-                <span className="cb-rl">Legal moves</span>
-                <span className="cb-rv">{game.moves().length}</span>
-              </div>
-            </div> */}
-
             <p className="cb-slabel">Actions</p>
             <button className="cb-btn cb-btn-gold" onClick={resetGame}>
               New Game
@@ -582,7 +685,7 @@ const ChallengeBotLux = () => {
             </div>
           </div>
 
-          {/* RIGHT PANEL */}
+          {/* RIGHT PANEL — desktop/tablet */}
           <div className="cb-panel cb-panel-r">
             <p className="cb-slabel">Move Log</p>
             <div className="cb-movelog" ref={moveLogRef}>
@@ -617,6 +720,16 @@ const ChallengeBotLux = () => {
               })}
             </div>
           </div>
+        </div>
+
+        {/* ── MOBILE BOTTOM: actions ── */}
+        <div className="cb-mobile-bottom">
+          <button className="cb-chip cb-chip-gold" onClick={resetGame}>
+            New Game
+          </button>
+          <button className="cb-chip cb-chip-danger" onClick={undoMove}>
+            ↺ Undo
+          </button>
         </div>
       </div>
     </>
