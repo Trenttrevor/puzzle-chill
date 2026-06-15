@@ -406,7 +406,7 @@ export default function Homepage(): ReactElement {
         <div className="hero-content">
           <div className="hero-badge">
             <span className="badge-dot" />
-            Platform Catur #2 Indonesia
+            Platform Catur #3 Indonesia
           </div>
           <h1 className="hero-title">
             Bermain Catur
