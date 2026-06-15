@@ -38,12 +38,11 @@ const PuzzleLuxPointsTest = () => {
   const [playerColor, setPlayerColor] = useState<"w" | "b">("w");
   const [status, setStatus] = useState<Status>("playing");
   const [theme, setTheme] = useState<Theme>("skewer");
-  // const [solvedCount, setSolvedCount] = useState(0);
-  // const [wrongCount, setWrongCount] = useState(0);
   const [boardVisible, setBoardVisible] = useState(false);
-  // const [showGacha, setShowGacha] = useState(false);
-  // const [gachaTickets, setGachaTickets] = useState(0);
   const [hint, setHint] = useState<string | null>(null);
+
+  const allThemes = new Set(puzzlesData.flatMap((puzzle) => puzzle.themes));
+  console.log([...allThemes]);
 
   const filteredPuzzle = puzzlesData.filter((pt) => pt.themes.includes(theme));
   const currentPuzzle: Puzzles = filteredPuzzle[puzzleIndex];
@@ -103,7 +102,6 @@ const PuzzleLuxPointsTest = () => {
       setGame(newGame);
       setStatus("wrong");
       setTimeout(() => setGame(new Chess(posBeforeWrong)), 1000);
-      // setWrongCount((p) => p + 1);
       return true;
     }
 
@@ -114,7 +112,6 @@ const PuzzleLuxPointsTest = () => {
 
     if (currentPuzzle.moves.length === nextIndex) {
       setStatus("correct");
-      // setSolvedCount((p) => p + 1);
       return true;
     }
 
@@ -159,7 +156,7 @@ const PuzzleLuxPointsTest = () => {
           --muted:      #6e6860;
         }
 
-        html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+        html, body { margin: 0; padding: 0; height: 100%; }
 
         .plx-page {
           position: fixed; inset: 0;
@@ -178,26 +175,34 @@ const PuzzleLuxPointsTest = () => {
           background-size: 56px 56px;
         }
 
+        /* ── DESKTOP layout ── */
         .plx-body {
           position: relative; z-index: 1;
           flex: 1; min-height: 0;
           display: grid;
           grid-template-columns: 190px 1fr 190px;
+          grid-template-rows: 1fr;
+          grid-template-areas: "left center right";
         }
 
         .plx-panel {
           display: flex; flex-direction: column;
-          padding: 1rem 1rem;
+          padding: 1rem;
           gap: 0.65rem;
           border-right: 1px solid var(--border);
           overflow: hidden;
+          grid-area: left;
         }
-        .plx-panel-r { border-right: none; border-left: 1px solid var(--border); }
+        .plx-panel-r {
+          border-right: none;
+          border-left: 1px solid var(--border);
+          grid-area: right;
+        }
 
         .plx-slabel {
-          font-size: 1rem; letter-spacing: 0.2em;
+          font-size: 0.7rem; letter-spacing: 0.2em;
           text-transform: uppercase; color: var(--gold);
-          padding-bottom: 0.45rem;
+          padding-bottom: 0.4rem;
           border-bottom: 1px solid var(--border);
           flex-shrink: 0;
         }
@@ -207,7 +212,7 @@ const PuzzleLuxPointsTest = () => {
           padding: 0.45rem 0.65rem;
           background: transparent; border: 1px solid var(--border);
           color: var(--muted); font-family: 'DM Sans', sans-serif;
-          font-size: 0.78rem; cursor: pointer; border-radius: 3px;
+          font-size: 0.75rem; cursor: pointer; border-radius: 3px;
           transition: all 0.18s; text-align: left;
         }
         .plx-tbtn:hover { border-color: var(--gold-dim); color: var(--gold-light); background: rgba(201,168,76,0.05); }
@@ -219,18 +224,18 @@ const PuzzleLuxPointsTest = () => {
         }
         .plx-info-row {
           display: flex; justify-content: space-between; align-items: center;
-          padding: 0.38rem 0.65rem;
+          padding: 0.35rem 0.6rem;
           border-bottom: 1px solid rgba(201,168,76,0.07);
-          font-size: 0.73rem;
+          font-size: 0.68rem;
         }
         .plx-info-row:last-child { border-bottom: none; }
         .plx-il { color: var(--muted); }
-        .plx-iv { font-size: 0.92rem; font-weight: 600; color: var(--gold-light); }
+        .plx-iv { font-size: 0.82rem; font-weight: 600; color: var(--gold-light); }
 
         .plx-btn {
           width: 100%;
-          padding: 0.5rem 0.65rem;
-          font-family: 'DM Sans', sans-serif; font-size: 0.76rem; letter-spacing: 0.04em;
+          padding: 0.45rem 0.6rem;
+          font-family: 'DM Sans', sans-serif; font-size: 0.72rem; letter-spacing: 0.04em;
           cursor: pointer; border-radius: 3px; transition: all 0.2s;
           border: 1px solid var(--border); background: transparent; color: var(--muted);
           text-align: center;
@@ -256,15 +261,17 @@ const PuzzleLuxPointsTest = () => {
           color: var(--gold-light);
         }
         .plx-hint-text {
-          font-size: 0.72rem;
+          font-size: 0.68rem;
           color: var(--gold-light);
           border: 1px solid rgba(201,168,76,0.25);
           border-radius: 3px;
-          padding: 0.38rem 0.65rem;
+          padding: 0.35rem 0.6rem;
           background: rgba(201,168,76,0.06);
         }
 
+        /* Centre column */
         .plx-center {
+          grid-area: center;
           display: flex; flex-direction: column;
           align-items: center; justify-content: center;
           padding: 0.75rem 1.25rem;
@@ -273,16 +280,18 @@ const PuzzleLuxPointsTest = () => {
 
         .plx-status {
           display: inline-flex; align-items: center; gap: 0.4rem;
-          font-size: 0.73rem; letter-spacing: 0.06em;
-          padding: 0.25rem 0.8rem; border-radius: 100px; border: 1px solid;
+          font-size: 0.68rem; letter-spacing: 0.06em;
+          padding: 0.22rem 0.75rem; border-radius: 100px; border: 1px solid;
           transition: all 0.3s; flex-shrink: 0;
+          white-space: nowrap;
         }
         .plx-status-playing { border-color: var(--border); color: var(--muted); }
         .plx-status-correct { border-color: rgba(100,200,100,0.35); color: #7ed97e; background: rgba(100,200,100,0.07); }
         .plx-status-wrong   { border-color: rgba(220,80,80,0.35); color: #e07070; background: rgba(220,80,80,0.07); }
-        .plx-sdot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; animation: sdot 2s infinite; }
+        .plx-sdot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; animation: sdot 2s infinite; flex-shrink: 0; }
         @keyframes sdot { 0%,100%{opacity:1} 50%{opacity:0.25} }
 
+        /* Board sizing — desktop */
         .plx-board-wrap {
           position: relative;
           width: min(calc(100vh - 52px - 110px), calc(100vw - 380px - 2.5rem));
@@ -300,17 +309,17 @@ const PuzzleLuxPointsTest = () => {
         }
         @keyframes fadeIn { from{opacity:0} to{opacity:1} }
         .plx-ov-correct { background: rgba(10,10,12,0.88); border: 1px solid rgba(100,200,100,0.25); }
-        .plx-ov-icon  { font-family: 'Cormorant Garamond', serif; font-size: 2.8rem; }
-        .plx-ov-title { font-family: 'Cormorant Garamond', serif; font-size: 1.7rem; font-weight: 700; }
+        .plx-ov-icon  { font-family: 'Cormorant Garamond', serif; font-size: 2.4rem; }
+        .plx-ov-title { font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; font-weight: 700; }
         .plx-ov-correct .plx-ov-title { color: #7ed97e; }
-        .plx-ov-sub { color: var(--muted); font-size: 0.77rem; }
+        .plx-ov-sub { color: var(--muted); font-size: 0.72rem; }
         .plx-ov-btns { display: flex; gap: 0.5rem; margin-top: 0.3rem; }
-        .plx-ov-btns .plx-btn { width: auto; padding: 0.45rem 1.1rem; }
+        .plx-ov-btns .plx-btn { width: auto; padding: 0.4rem 1rem; }
 
         .plx-prog { width: 100%; flex-shrink: 0; }
         .plx-prog-labels {
           display: flex; justify-content: space-between;
-          font-size: 0.62rem; letter-spacing: 0.1em;
+          font-size: 0.58rem; letter-spacing: 0.1em;
           text-transform: uppercase; color: var(--muted); margin-bottom: 0.3rem;
         }
         .plx-prog-track { height: 2px; background: rgba(201,168,76,0.08); border-radius: 2px; overflow: hidden; }
@@ -328,13 +337,163 @@ const PuzzleLuxPointsTest = () => {
           border: 1px solid var(--border);
           z-index: 20;
         }
+
+        /* ── MOBILE top bar: theme pills ── */
+        .plx-mobile-top {
+          display: none;
+          position: relative; z-index: 1;
+          flex-direction: row; align-items: center;
+          gap: 0.4rem;
+          padding: 0.35rem 0.75rem;
+          border-bottom: 1px solid var(--border);
+          overflow-x: auto;
+          scrollbar-width: none;
+          flex-shrink: 0;
+        }
+        .plx-mobile-top::-webkit-scrollbar { display: none; }
+
+        /* ── MOBILE bottom bar: info + actions ── */
+        .plx-mobile-bottom {
+          display: none;
+          position: relative; z-index: 1;
+          flex-direction: row; align-items: center;
+          gap: 0.4rem;
+          padding: 0.35rem 0.75rem;
+          border-top: 1px solid var(--border);
+          flex-shrink: 0;
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+        .plx-mobile-bottom::-webkit-scrollbar { display: none; }
+
+        .plx-mb-chip {
+          display: flex; align-items: center;
+          padding: 0.28rem 0.55rem;
+          border: 1px solid var(--border); border-radius: 3px;
+          background: transparent; color: var(--muted);
+          font-family: 'DM Sans', sans-serif; font-size: 0.65rem;
+          white-space: nowrap; cursor: pointer; flex-shrink: 0;
+          transition: all 0.18s;
+        }
+        .plx-mb-chip:hover { border-color: var(--gold-dim); color: var(--gold-light); }
+        .plx-mb-chip.active { border-color: var(--gold); color: var(--gold-light); background: rgba(201,168,76,0.1); }
+        .plx-mb-chip-gold {
+          background: linear-gradient(135deg, var(--gold) 0%, #7a540f 100%);
+          border-color: transparent; color: #0a0a0c; font-weight: 600;
+        }
+        .plx-mb-chip-hint {
+          border-color: rgba(201,168,76,0.45); color: var(--gold-light);
+          background: rgba(201,168,76,0.07);
+        }
+        .plx-mb-divider {
+          width: 1px; height: 16px;
+          background: var(--border); flex-shrink: 0;
+        }
+        .plx-mb-stat {
+          display: flex; flex-direction: column;
+          align-items: center; flex-shrink: 0;
+          gap: 0;
+        }
+        .plx-mb-stat-l { font-size: 0.5rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; line-height: 1; }
+        .plx-mb-stat-v { font-size: 0.72rem; font-weight: 600; color: var(--gold-light); line-height: 1.2; }
+        .plx-mb-hint-text {
+          font-size: 0.62rem; color: var(--gold-light);
+          border: 1px solid rgba(201,168,76,0.25); border-radius: 3px;
+          padding: 0.25rem 0.5rem; background: rgba(201,168,76,0.06);
+          white-space: nowrap; flex-shrink: 0;
+        }
+
+        /* ── RESPONSIVE breakpoint ── */
+        @media (max-width: 680px) {
+          html, body { overflow: hidden; }
+
+          .plx-panel,
+          .plx-panel-r { display: none; }
+
+          .plx-mobile-top    { display: flex; }
+          .plx-mobile-bottom { display: flex; }
+
+          .plx-body {
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr;
+            grid-template-areas: "center";
+          }
+
+          .plx-center {
+            padding: 0.5rem 0.5rem;
+            gap: 0.45rem;
+            justify-content: flex-start;
+          }
+
+          /* Board: full width minus padding */
+          .plx-board-wrap {
+            width: calc(100vw - 1rem);
+          }
+
+          .plx-status {
+            font-size: 0.6rem;
+            padding: 0.18rem 0.6rem;
+          }
+
+          .plx-prog-labels { font-size: 0.52rem; }
+        }
+
+        /* Tablet: narrow sidebar or collapse */
+        @media (min-width: 681px) and (max-width: 900px) {
+          .plx-body {
+            grid-template-columns: 140px 1fr 140px;
+          }
+          .plx-panel, .plx-panel-r { padding: 0.75rem 0.6rem; gap: 0.5rem; }
+          .plx-slabel { font-size: 0.6rem; }
+          .plx-tbtn { font-size: 0.68rem; padding: 0.38rem 0.5rem; }
+          .plx-btn { font-size: 0.66rem; padding: 0.38rem 0.5rem; }
+          .plx-info-row { font-size: 0.62rem; padding: 0.3rem 0.5rem; }
+          .plx-iv { font-size: 0.75rem; }
+
+          .plx-board-wrap {
+            width: min(calc(100vh - 52px - 100px), calc(100vw - 280px - 2rem));
+          }
+        }
       `}</style>
 
       <div className="plx-page">
         <NavbarLux />
 
+        {/* ── MOBILE: theme pill bar (top) ── */}
+        <div className="plx-mobile-top">
+          {themes.map((t) => (
+            <button
+              key={t.value}
+              className={`plx-mb-chip${theme === t.value ? " active" : ""}`}
+              onClick={() => setTheme(t.value)}
+            >
+              {t.label}
+            </button>
+          ))}
+          <div className="plx-mb-divider" />
+          <div className="plx-mb-stat">
+            <span className="plx-mb-stat-l">Rating</span>
+            <span className="plx-mb-stat-v">
+              {currentPuzzle?.rating ?? "—"}
+            </span>
+          </div>
+          <div className="plx-mb-divider" />
+          <div className="plx-mb-stat">
+            <span className="plx-mb-stat-l">Play</span>
+            <span className="plx-mb-stat-v">
+              {playerColor === "w" ? "♔ W" : "♚ B"}
+            </span>
+          </div>
+          <div className="plx-mb-divider" />
+          <div className="plx-mb-stat">
+            <span className="plx-mb-stat-l">Moves</span>
+            <span className="plx-mb-stat-v">{playerMoves}</span>
+          </div>
+        </div>
+
         <div className="plx-body">
-          {/* LEFT — theme filter */}
+          {/* LEFT — theme filter (desktop/tablet) */}
           <div className="plx-panel">
             <p className="plx-slabel">Choose Theme</p>
             {themes.map((t) => (
@@ -415,16 +574,10 @@ const PuzzleLuxPointsTest = () => {
             </div>
           </div>
 
-          {/* RIGHT — puzzle info + actions */}
+          {/* RIGHT — puzzle info + actions (desktop/tablet) */}
           <div className="plx-panel plx-panel-r">
             <p className="plx-slabel">Puzzle Info</p>
             <div className="plx-info-card">
-              {/* <div className="plx-info-row">
-                <span className="plx-il">ID</span>
-                <span className="plx-iv" style={{ fontSize: "0.72rem" }}>
-                  {currentPuzzle?.id ?? "—"}
-                </span>
-              </div> */}
               <div className="plx-info-row">
                 <span className="plx-il">Rating</span>
                 <span className="plx-iv">{currentPuzzle?.rating ?? "—"}</span>
@@ -467,27 +620,47 @@ const PuzzleLuxPointsTest = () => {
                 ◎ Hint
               </button>
             )}
-
             {hint && <div className="plx-hint-text">◎ {hint}</div>}
-
-            {/* {gachaTickets > 0 && (
-              <button
-                className="plx-btn plx-btn-gold"
-                onClick={() => setShowGacha(true)}
-              >
-                Gacha!
-              </button>
-            )} */}
           </div>
         </div>
 
-        {/* {showGacha && (
-          <GachaModal
-            tickets={gachaTickets}
-            onClose={() => setShowGacha(false)}
-            onTicketUsed={() => setGachaTickets((t) => Math.max(0, t - 1))}
-          />
-        )} */}
+        {/* ── MOBILE: action chip bar (bottom) ── */}
+        <div className="plx-mobile-bottom">
+          <button className="plx-mb-chip" onClick={reset}>
+            ↺ Reset
+          </button>
+          <button
+            className="plx-mb-chip"
+            onClick={() => setPuzzleIndex((p) => p + 1)}
+          >
+            Skip →
+          </button>
+          <button
+            className="plx-mb-chip plx-mb-chip-gold"
+            onClick={() =>
+              setPuzzleIndex(getRandomIndex(filteredPuzzle.length))
+            }
+          >
+            Next →
+          </button>
+          {status === "wrong" && !hint && (
+            <>
+              <div className="plx-mb-divider" />
+              <button
+                className="plx-mb-chip plx-mb-chip-hint"
+                onClick={showHint}
+              >
+                ◎ Hint
+              </button>
+            </>
+          )}
+          {hint && (
+            <>
+              <div className="plx-mb-divider" />
+              <div className="plx-mb-hint-text">◎ {hint}</div>
+            </>
+          )}
+        </div>
       </div>
     </>
   );
