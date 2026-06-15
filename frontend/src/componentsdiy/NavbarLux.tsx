@@ -3,10 +3,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 type NavName = "Puzzle" | "Challenge BOT" | "Leaderboard";
 
-const nav_links: { navName: NavName; navURL: string }[] = [
-  { navName: "Puzzle", navURL: "/puzzle" },
-  { navName: "Challenge BOT", navURL: "/challenge" },
-  { navName: "Leaderboard", navURL: "/leaderboard" },
+const nav_links: { navName: NavName; navURL: string; short: string }[] = [
+  { navName: "Puzzle", navURL: "/puzzle", short: "Puzzle" },
+  { navName: "Challenge BOT", navURL: "/challenge", short: "BOT" },
+  { navName: "Leaderboard", navURL: "/leaderboard", short: "Board" },
 ];
 
 const NavbarLux = () => {
@@ -17,7 +17,6 @@ const NavbarLux = () => {
     if (pathname.includes("puzzle")) return "Puzzle";
     if (pathname.includes("challenge")) return "Challenge BOT";
     if (pathname.includes("leaderboard")) return "Leaderboard";
-
     return "Puzzle";
   };
 
@@ -49,41 +48,58 @@ const NavbarLux = () => {
           background: rgba(10,10,12,0.75);
           backdrop-filter: blur(12px);
           flex-shrink: 0;
+          gap: 0.5rem;
         }
 
+        /* ── BRAND ── */
         .plx-brand {
+          display: flex; align-items: center; gap: 0.5rem;
+          cursor: pointer; flex-shrink: 0; text-decoration: none;
+          background: none; border: none; padding: 0;
+        }
+        .plx-brand-piece {
+          font-size: 1.55rem; line-height: 1;
+          color: var(--gold-light);
+          display: flex; align-items: center; justify-content: center;
+          filter: drop-shadow(0 0 6px rgba(201,168,76,0.35));
+          transition: filter 0.2s;
+        }
+        .plx-brand:hover .plx-brand-piece {
+          filter: drop-shadow(0 0 10px rgba(201,168,76,0.6));
+        }
+        .plx-brand-text {
+          display: flex; flex-direction: column; align-items: flex-start; gap: 0;
+        }
+        .plx-brand-name {
           font-family: 'Cormorant Garamond', serif;
-          font-size: 1.1rem; font-weight: 700; color: var(--gold-light);
-          display: flex; align-items: center; gap: 0.4rem;
+          font-size: 1rem; font-weight: 700; color: var(--gold-light);
+          line-height: 1.1; white-space: nowrap;
         }
         .plx-brand-sub {
-          font-size: 0.62rem; font-weight: 300;
+          font-size: 0.55rem; font-weight: 300;
           font-family: 'DM Sans', sans-serif;
           letter-spacing: 0.18em; text-transform: uppercase;
-          color: var(--muted);
+          color: var(--muted); line-height: 1;
         }
 
+        /* ── NAV ── */
         .plx-nav {
           display: flex; align-items: center;
-          gap: 0.45rem; list-style: none;
+          gap: 0.3rem; list-style: none;
           padding: 0; margin: 0;
         }
-
-        .plx-nav-btn {
-          background: none; border: none; padding: 0; cursor: pointer;
-        }
-
         .plx-nav-link {
           position: relative;
           display: inline-flex; align-items: center; justify-content: center;
-          padding: 0.42rem 0.9rem;
-          text-decoration: none;
+          padding: 0.38rem 0.8rem;
+          background: none; border: 1px solid transparent; border-radius: 3px;
           color: var(--muted);
           font-family: 'DM Sans', sans-serif;
-          font-size: 0.76rem; letter-spacing: 0.08em;
+          font-size: 0.73rem; letter-spacing: 0.07em;
           text-transform: uppercase; font-weight: 500;
-          border: 1px solid transparent; border-radius: 3px;
-          transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+          cursor: pointer;
+          transition: color 0.2s, border-color 0.2s, background 0.2s;
+          white-space: nowrap;
         }
         .plx-nav-link:hover {
           color: var(--gold-light);
@@ -100,67 +116,70 @@ const NavbarLux = () => {
           position: absolute; left: 12%; bottom: 4px;
           width: 76%; height: 1px;
           background: linear-gradient(90deg, transparent, var(--gold), transparent);
-          opacity: 0; transition: opacity 0.2s ease;
+          opacity: 0; transition: opacity 0.2s;
         }
         .plx-nav-link:hover::after,
         .plx-nav-link.active::after { opacity: 1; }
 
-        /* ── USER SLOT ───────────────────────────── */
-        .plx-user-slot {
-          display: flex; align-items: center; gap: 0.65rem;
-          min-width: 140px; justify-content: flex-end;
+        /* hide/show label variants */
+        .plx-nav-short { display: none; }
+        .plx-nav-full  { display: inline; }
+
+        /* ── MOBILE ── */
+        @media (max-width: 680px) {
+          .plx-topbar {
+            padding: 0 0.85rem;
+          }
+
+          /* hide the brand text on very small screens, show just the piece */
+          .plx-brand-text { display: none; }
+          .plx-brand-piece { font-size: 1.65rem; }
+
+          /* shrink nav links to short labels */
+          .plx-nav-full  { display: none; }
+          .plx-nav-short { display: inline; }
+
+          .plx-nav-link {
+            font-size: 0.65rem;
+            padding: 0.3rem 0.55rem;
+            letter-spacing: 0.05em;
+          }
+          .plx-nav { gap: 0.2rem; }
         }
-        .plx-user-avatar {
-          width: 30px; height: 30px; border-radius: 50%;
-          border: 1px solid var(--gold-dim);
-          background: rgba(201,168,76,0.12);
-          display: flex; align-items: center; justify-content: center;
-          font-family: 'Cormorant Garamond', serif;
-          font-size: 0.95rem; color: var(--gold-light);
-          overflow: hidden; flex-shrink: 0;
-        }
-        .plx-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
-        .plx-user-name {
-          font-size: 0.76rem; color: var(--gold-light);
-          font-family: 'DM Sans', sans-serif; font-weight: 500;
-          letter-spacing: 0.03em;
-          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-          max-width: 100px;
-        }
-        .plx-user-guest {
-          font-size: 0.72rem; color: var(--muted);
-          font-family: 'DM Sans', sans-serif;
-          letter-spacing: 0.06em;
-          display: flex; align-items: center; gap: 0.3rem;
-        }
-        .plx-user-guest-dot {
-          width: 5px; height: 5px; border-radius: 50%;
-          background: var(--muted); opacity: 0.5;
+
+        /* ── TABLET ── */
+        @media (min-width: 681px) and (max-width: 900px) {
+          .plx-topbar { padding: 0 1.1rem; }
+          .plx-brand-name { font-size: 0.88rem; }
+          .plx-brand-sub  { font-size: 0.5rem; }
+          .plx-nav-link   { font-size: 0.68rem; padding: 0.35rem 0.65rem; }
         }
       `}</style>
 
       <header className="plx-topbar">
         {/* Brand */}
-        <div className="plx-brand">
-          <button onClick={() => navigate("/")} className="cursor-pointer">
-            ♛ Chill Chess Indo
-          </button>
-          <span className="plx-brand-sub">· Training Ground</span>
-        </div>
+        <button className="plx-brand" onClick={() => navigate("/")}>
+          <span className="plx-brand-piece">♛</span>
+          <span className="plx-brand-text">
+            <span className="plx-brand-name">Chill Chess Indo</span>
+            <span className="plx-brand-sub">Training Ground</span>
+          </span>
+        </button>
 
-        {/* Nav links */}
+        {/* Nav */}
         <nav>
           <ul className="plx-nav">
             {nav_links.map((l) => (
               <li key={l.navName}>
                 <button
-                  className={`plx-nav-link ${l.navName === selectedNav ? "active" : ""}`}
+                  className={`plx-nav-link${l.navName === selectedNav ? " active" : ""}`}
                   onClick={() => {
                     setSelectedNav(l.navName);
                     navigate(l.navURL);
                   }}
                 >
-                  {l.navName}
+                  <span className="plx-nav-full">{l.navName}</span>
+                  <span className="plx-nav-short">{l.short}</span>
                 </button>
               </li>
             ))}
