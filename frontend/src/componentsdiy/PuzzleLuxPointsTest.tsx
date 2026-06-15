@@ -343,14 +343,20 @@ const PuzzleLuxPointsTest = () => {
           display: none;
           position: relative; z-index: 1;
           flex-direction: row; align-items: center;
+          justify-content: space-between;
           gap: 0.4rem;
           padding: 0.35rem 0.75rem;
           border-bottom: 1px solid var(--border);
-          overflow-x: auto;
-          scrollbar-width: none;
           flex-shrink: 0;
         }
-        .plx-mobile-top::-webkit-scrollbar { display: none; }
+        .plx-mobile-top-themes {
+          display: flex; align-items: center; gap: 0.35rem;
+          flex-shrink: 0;
+        }
+        .plx-mobile-top-stats {
+          display: flex; align-items: center; gap: 0.5rem;
+          flex-shrink: 0;
+        }
 
         /* ── MOBILE bottom bar: info + actions ── */
         .plx-mobile-bottom {
@@ -462,33 +468,39 @@ const PuzzleLuxPointsTest = () => {
 
         {/* ── MOBILE: theme pill bar (top) ── */}
         <div className="plx-mobile-top">
-          {themes.map((t) => (
-            <button
-              key={t.value}
-              className={`plx-mb-chip${theme === t.value ? " active" : ""}`}
-              onClick={() => setTheme(t.value)}
-            >
-              {t.label}
-            </button>
-          ))}
-          <div className="plx-mb-divider" />
-          <div className="plx-mb-stat">
-            <span className="plx-mb-stat-l">Rating</span>
-            <span className="plx-mb-stat-v">
-              {currentPuzzle?.rating ?? "—"}
-            </span>
+          {/* Left: theme pills */}
+          <div className="plx-mobile-top-themes">
+            {themes.map((t) => (
+              <button
+                key={t.value}
+                className={`plx-mb-chip${theme === t.value ? " active" : ""}`}
+                onClick={() => setTheme(t.value)}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
-          <div className="plx-mb-divider" />
-          <div className="plx-mb-stat">
-            <span className="plx-mb-stat-l">Play</span>
-            <span className="plx-mb-stat-v">
-              {playerColor === "w" ? "♔ W" : "♚ B"}
-            </span>
-          </div>
-          <div className="plx-mb-divider" />
-          <div className="plx-mb-stat">
-            <span className="plx-mb-stat-l">Moves</span>
-            <span className="plx-mb-stat-v">{playerMoves}</span>
+
+          {/* Right: stats */}
+          <div className="plx-mobile-top-stats">
+            <div className="plx-mb-stat">
+              <span className="plx-mb-stat-l">Rating</span>
+              <span className="plx-mb-stat-v">
+                {currentPuzzle?.rating ?? "—"}
+              </span>
+            </div>
+            <div className="plx-mb-divider" />
+            <div className="plx-mb-stat">
+              <span className="plx-mb-stat-l">Play</span>
+              <span className="plx-mb-stat-v">
+                {playerColor === "w" ? "♔ W" : "♚ B"}
+              </span>
+            </div>
+            <div className="plx-mb-divider" />
+            <div className="plx-mb-stat">
+              <span className="plx-mb-stat-l">Moves</span>
+              <span className="plx-mb-stat-v">{playerMoves}</span>
+            </div>
           </div>
         </div>
 
