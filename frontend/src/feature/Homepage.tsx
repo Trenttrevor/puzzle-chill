@@ -507,7 +507,7 @@ export default function Homepage(): ReactElement {
       {/* FOOTER */}
       <footer>
         <div className="footer-logo">♛ Chill Chess Indo</div>
-        <div className="footer-links">
+        {/* <div className="footer-links">
           {[
             "Tentang Kami",
             "Kebijakan Privasi",
@@ -519,7 +519,7 @@ export default function Homepage(): ReactElement {
               {l}
             </a>
           ))}
-        </div>
+        </div> */}
         <div className="footer-copy">
           © 2026 Chill Chess Indo. All rights reserved.
         </div>
