@@ -50,7 +50,7 @@ const STATS: Stat[] = [
   { value: "8000+", label: "Active Players" },
   { value: "5000+", label: "Puzzles" },
   { value: "3000+", label: "ELO Rating BOT" },
-  { value: "#2", label: "Chess Platform ID" },
+  { value: "#3", label: "Chess Platform ID" },
 ];
 
 function FloatingPiece({ piece, style }: FloatingPieceProps): ReactElement {
