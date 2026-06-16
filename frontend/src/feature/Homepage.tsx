@@ -384,10 +384,16 @@ export default function Homepage(): ReactElement {
             <span className="logo-sub">Play · Learn · Rise</span>
           </span>
         </a>
+
         <div className="nav-actions">
-          <button className="btn-gold" onClick={() => navigate("/puzzle")}>
-            ▶ Play Now
-          </button>
+          <a
+            href="https://saweria.co/chillwebdeveloper"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-gold"
+          >
+            ❤️ Support Chill Chess Indo
+          </a>
         </div>
         <button className="hamburger" onClick={() => setMenuOpen(true)}>
           <span />

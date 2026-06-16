@@ -158,6 +158,8 @@ const PuzzleLuxPointsTest = () => {
 
         html, body { margin: 0; padding: 0; height: 100%; }
 
+        
+
         .plx-page {
           position: fixed; inset: 0;
           display: flex; flex-direction: column;
