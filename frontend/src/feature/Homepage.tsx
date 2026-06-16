@@ -412,15 +412,16 @@ export default function Homepage(): ReactElement {
             Platform Catur #3 Indonesia
           </div>
           <h1 className="hero-title">
-            Bermain Catur
+            Ganti Scrolling
             <span className="line2">
-              dengan <span className="gold">Efektif dan Chill</span>
+              dengan <span className="gold">Habit Berpikir.</span>
             </span>
           </h1>
           <div className="hero-divider" />
           <p className="hero-sub">
-            Bergabunglah dengan 8000+ pemain Indonesia dan Internasional. Magnus
-            pernah main disini.
+            Ambil napas, main catur sebentar, dan chill.
+            <br />
+            Magnus pernah main disini.
           </p>
           <div className="hero-cta">
             <button
