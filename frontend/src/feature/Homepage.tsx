@@ -62,7 +62,6 @@ function FloatingPiece({ piece, style }: FloatingPieceProps): ReactElement {
 }
 
 export default function Homepage(): ReactElement {
-  const [menuOpen, setMenuOpen] = useState<boolean>(false);
   const [scrolled, setScrolled] = useState<boolean>(false);
   const navigate = useNavigate();
 
@@ -191,6 +190,30 @@ export default function Homepage(): ReactElement {
           cursor: pointer; border: none; border-radius: 4px; transition: all 0.25s;
         }
         .btn-gold:hover { background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(201,168,76,0.25); }
+
+        .mobile-donate {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .desktop-donate {
+    display: none;
+  }
+
+  .mobile-donate {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0.9rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: #111;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+}
 
         /* HAMBURGER */
         .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; background: none; border: none; padding: 4px; }
@@ -343,38 +366,6 @@ export default function Homepage(): ReactElement {
         }
       `}</style>
 
-      {/* MOBILE MENU */}
-      {menuOpen && (
-        <div className="mobile-menu">
-          <button
-            onClick={() => setMenuOpen(false)}
-            style={{
-              position: "absolute",
-              top: 24,
-              right: 24,
-              background: "none",
-              border: "none",
-              color: "var(--gold-light)",
-              fontSize: "1.8rem",
-              cursor: "pointer",
-            }}
-          >
-            ✕
-          </button>
-          <div className="mobile-menu-actions">
-            <button
-              className="btn-gold btn-hero"
-              onClick={() => {
-                setMenuOpen(false);
-                navigate("/puzzle");
-              }}
-            >
-              ▶ Play Now
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* NAVBAR */}
       <nav className={`navbar${scrolled ? " scrolled" : ""}`}>
         <a href="#" className="logo">
@@ -385,21 +376,27 @@ export default function Homepage(): ReactElement {
           </span>
         </a>
 
+        {/* Desktop Donate Button */}
         <div className="nav-actions">
           <a
             href="https://saweria.co/chillwebdeveloper"
             target="_blank"
             rel="noopener noreferrer"
-            className="btn-gold"
+            className="btn-gold desktop-donate"
           >
             ❤️ Support Chill Chess Indo
           </a>
         </div>
-        <button className="hamburger" onClick={() => setMenuOpen(true)}>
-          <span />
-          <span />
-          <span />
-        </button>
+
+        {/* Mobile Donate Button */}
+        <a
+          href="https://saweria.co/chillwebdeveloper"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mobile-donate"
+        >
+          ❤️ Support
+        </a>
       </nav>
 
       {/* HERO */}
