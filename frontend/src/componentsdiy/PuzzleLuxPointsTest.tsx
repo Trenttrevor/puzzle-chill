@@ -33,7 +33,7 @@ const pieceNames: Record<string, string> = {
 
 const PuzzleLuxPointsTest = () => {
   const [game, setGame] = useState<Chess>(new Chess());
-  const [puzzleIndex, setPuzzleIndex] = useState<number>(0);
+  // const [puzzleIndex, setPuzzleIndex] = useState<number>(0);
   const [moveIndex, setMoveIndex] = useState(0);
   const [playerColor, setPlayerColor] = useState<"w" | "b">("w");
   const [status, setStatus] = useState<Status>("playing");
@@ -45,6 +45,11 @@ const PuzzleLuxPointsTest = () => {
   console.log([...allThemes]);
 
   const filteredPuzzle = puzzlesData.filter((pt) => pt.themes.includes(theme));
+
+  const [puzzleIndex, setPuzzleIndex] = useState(() =>
+    Math.floor(Math.random() * filteredPuzzle.length),
+  );
+
   const currentPuzzle: Puzzles = filteredPuzzle[puzzleIndex];
 
   const getRandomIndex = (length: number) => Math.floor(Math.random() * length);
