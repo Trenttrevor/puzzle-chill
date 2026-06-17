@@ -33,7 +33,6 @@ const pieceNames: Record<string, string> = {
 
 const PuzzleLuxPointsTest = () => {
   const [game, setGame] = useState<Chess>(new Chess());
-  // const [puzzleIndex, setPuzzleIndex] = useState<number>(0);
   const [moveIndex, setMoveIndex] = useState(0);
   const [playerColor, setPlayerColor] = useState<"w" | "b">("w");
   const [status, setStatus] = useState<Status>("playing");
@@ -619,12 +618,12 @@ const PuzzleLuxPointsTest = () => {
             <button className="plx-btn" onClick={reset}>
               ↺ Reset
             </button>
-            <button
+            {/* <button
               className="plx-btn"
               onClick={() => setPuzzleIndex((p) => p + 1)}
             >
               Skip →
-            </button>
+            </button> */}
             <button
               className="plx-btn plx-btn-gold"
               onClick={() =>
@@ -648,12 +647,12 @@ const PuzzleLuxPointsTest = () => {
           <button className="plx-mb-chip" onClick={reset}>
             ↺ Reset
           </button>
-          <button
+          {/* <button
             className="plx-mb-chip"
             onClick={() => setPuzzleIndex((p) => p + 1)}
           >
             Skip →
-          </button>
+          </button> */}
           <button
             className="plx-mb-chip plx-mb-chip-gold"
             onClick={() =>
