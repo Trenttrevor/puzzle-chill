@@ -1,4 +1,4 @@
-const TentangKami = () => {
+const Tentangkami = () => {
   return (
     <div>
       <style>{`
@@ -264,4 +264,4 @@ const TentangKami = () => {
   );
 };
 
-export default TentangKami;
+export default Tentangkami;
