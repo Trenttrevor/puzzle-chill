@@ -23,6 +23,11 @@ interface FloatingPieceProps {
   style: CSSProperties;
 }
 
+type Footer = {
+  text: string;
+  link: string;
+};
+
 const FEATURES: Feature[] = [
   {
     icon: "♟",
@@ -60,6 +65,35 @@ function FloatingPiece({ piece, style }: FloatingPieceProps): ReactElement {
     </div>
   );
 }
+
+const footer: Footer[] = [
+  {
+    text: "Tentang Kami",
+    link: "/tentangkami",
+  },
+  {
+    text: "Kebijakan Privasi",
+    link: "/kebijakanprivasi",
+  },
+  {
+    text: "Syarat & Ketentuan",
+    link: "/syaratketentuan",
+  },
+  {
+    text: "Kontak",
+    link: "/kontak",
+  },
+  {
+    text: "Blog",
+    link: "/blog",
+  },
+];
+
+// "Tentang Kami",
+//             "Kebijakan Privasi",
+//             "Syarat & Ketentuan",
+//             "Kontak",
+//             "Blog"
 
 export default function Homepage(): ReactElement {
   const [scrolled, setScrolled] = useState<boolean>(false);
@@ -508,19 +542,13 @@ export default function Homepage(): ReactElement {
       {/* FOOTER */}
       <footer>
         <div className="footer-logo">♛ Chill Chess Indo</div>
-        {/* <div className="footer-links">
-          {[
-            "Tentang Kami",
-            "Kebijakan Privasi",
-            "Syarat & Ketentuan",
-            "Kontak",
-            "Blog",
-          ].map((l: string) => (
-            <a key={l} href="#">
-              {l}
+        <div className="footer-links">
+          {footer.map((l) => (
+            <a key={l.text} href={l.link}>
+              {l.text}
             </a>
           ))}
-        </div> */}
+        </div>
         <div className="footer-copy">
           © 2026 Chill Chess Indo. All rights reserved.
         </div>
