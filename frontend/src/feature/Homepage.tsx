@@ -544,9 +544,9 @@ export default function Homepage(): ReactElement {
         <div className="footer-logo">♛ Chill Chess Indo</div>
         <div className="footer-links">
           {footer.map((l) => (
-            <a key={l.text} href={l.link}>
+            <button key={l.text} onClick={() => navigate(l.link)}>
               {l.text}
-            </a>
+            </button>
           ))}
         </div>
         <div className="footer-copy">
