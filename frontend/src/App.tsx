@@ -10,6 +10,7 @@ import Blog from "./feature/Blog";
 import SyaratKetentuan from "./feature/SyaratKetentuan";
 import Privacy from "./feature/Privacy";
 import Kontak from "./feature/Kontak";
+import BotEasy from "./variant/BotEasy";
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
         <Route path="/kontak" element={<Kontak />} />
         <Route path="/puzzle" element={<PuzzleLuxPointsTest />} />
         <Route path="/challenge" element={<ChallengeBotLux />} />
+        <Route path="/variant" element={<BotEasy />} />
         <Route path="/leaderboard" element={<LeaderboardLux />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Routes>

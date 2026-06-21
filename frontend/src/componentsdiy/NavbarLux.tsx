@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-type NavName = "Puzzle" | "Challenge BOT" | "Leaderboard";
+type NavName = "Puzzle" | "Challenge BOT" | "Variant" | "Leaderboard";
 
 const nav_links: { navName: NavName; navURL: string; short: string }[] = [
   { navName: "Puzzle", navURL: "/puzzle", short: "Puzzle" },
   { navName: "Challenge BOT", navURL: "/challenge", short: "BOT" },
+  { navName: "Variant", navURL: "/variant", short: "Var" },
   { navName: "Leaderboard", navURL: "/leaderboard", short: "Board" },
 ];
 
@@ -17,6 +18,7 @@ const NavbarLux = () => {
     if (pathname.includes("puzzle")) return "Puzzle";
     if (pathname.includes("challenge")) return "Challenge BOT";
     if (pathname.includes("leaderboard")) return "Leaderboard";
+    if (pathname.includes("variant")) return "Variant";
     return "Puzzle";
   };
 

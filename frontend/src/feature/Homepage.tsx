@@ -171,25 +171,25 @@ export default function Homepage(): ReactElement {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Tiny5&family=Baloo+2:wght@500;600;700;800&family=Quicksand:wght@300;400;500;600;700&display=swap');
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-          --gold: #C9A84C;
-          --gold-light: #E8C97A;
-          --gold-dim: #8a6e2f;
-          --bg: #0a0a0c;
-          --bg2: #111115;
-          --bg3: #18181e;
-          --surface: #1e1e26;
-          --border: rgba(201,168,76,0.18);
-          --text: #f0ece0;
-          --muted: #7a7465;
-          --accent: #C9A84C;
+          --gold: #e8a14d;
+          --gold-light: #ffcb6b;
+          --gold-dim: #9c6b2e;
+          --bg: #2b2014;
+          --bg2: #3a2c1a;
+          --bg3: #463520;
+          --surface: #4c3a22;
+          --border: rgba(232,161,77,0.24);
+          --text: #f3e9d2;
+          --muted: #b89a72;
+          --accent: #8fce5c;
         }
 
-        body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; overflow-x: hidden; }
+        body { background: var(--bg); color: var(--text); font-family: 'Quicksand', sans-serif; overflow-x: hidden; }
 
         /* NAVBAR */
         .navbar {
@@ -200,30 +200,31 @@ export default function Homepage(): ReactElement {
           border-bottom: 1px solid transparent;
         }
         .navbar.scrolled {
-          background: rgba(10,10,12,0.92);
+          background: rgba(43,32,20,0.94);
           backdrop-filter: blur(16px);
-          border-bottom: 1px solid var(--border);
+          border-bottom: 2px solid var(--border);
         }
         .logo {
           display: flex; align-items: center; gap: 0.6rem;
-          font-family: 'Cormorant Garamond', serif;
-          font-size: 1.5rem; font-weight: 700;
-          color: var(--gold-light); letter-spacing: 0.02em;
+          font-family: 'Baloo 2', cursive;
+          font-size: 1.35rem; font-weight: 700;
+          color: var(--gold-light); letter-spacing: 0.01em;
           text-decoration: none;
         }
         .logo-icon { font-size: 1.8rem; }
-        .logo-sub { color: var(--muted); font-size: 0.7rem; font-family: 'DM Sans', sans-serif; font-weight: 300; letter-spacing: 0.15em; text-transform: uppercase; display: block; margin-top: -4px; }
+        .logo-sub { color: var(--muted); font-size: 0.65rem; font-family: 'Quicksand', sans-serif; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; display: block; margin-top: 2px; }
 
         .nav-actions { display: flex; gap: 0.75rem; align-items: center; }
 
         .btn-gold {
           padding: 0.5rem 1.4rem;
-          background: linear-gradient(135deg, var(--gold) 0%, #a8782a 100%);
-          color: #0a0a0c; font-family: 'DM Sans', sans-serif;
-          font-size: 0.84rem; font-weight: 600; letter-spacing: 0.06em;
-          cursor: pointer; border: none; border-radius: 4px; transition: all 0.25s;
+          background: linear-gradient(135deg, #8fce5c 0%, #4f8a2e 100%);
+          color: #fffceb; font-family: 'Quicksand', sans-serif;
+          font-size: 0.84rem; font-weight: 700; letter-spacing: 0.04em;
+          cursor: pointer; border: 2px solid #6fa83f; border-radius: 8px; transition: all 0.25s;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 0 rgba(0,0,0,0.2);
         }
-        .btn-gold:hover { background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(201,168,76,0.25); }
+        .btn-gold:hover { background: linear-gradient(135deg, #a3e070 0%, #5f9c3a 100%); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(143,206,92,0.3); }
 
         .mobile-donate {
   display: none;
@@ -240,8 +241,9 @@ export default function Homepage(): ReactElement {
     justify-content: center;
     padding: 0.5rem 0.9rem;
     border-radius: 999px;
-    background: linear-gradient(135deg, #fbbf24, #f59e0b);
-    color: #111;
+    background: linear-gradient(135deg, #8fce5c, #4f8a2e);
+    border: 2px solid #6fa83f;
+    color: #fffceb;
     font-size: 0.85rem;
     font-weight: 700;
     text-decoration: none;
@@ -262,16 +264,16 @@ export default function Homepage(): ReactElement {
         .hero-bg {
           position: absolute; inset: 0;
           background:
-            radial-gradient(ellipse 80% 60% at 50% 40%, rgba(201,168,76,0.06) 0%, transparent 70%),
-            radial-gradient(ellipse 40% 40% at 80% 70%, rgba(201,168,76,0.04) 0%, transparent 60%),
+            radial-gradient(ellipse 80% 60% at 50% 40%, rgba(143,206,92,0.08) 0%, transparent 70%),
+            radial-gradient(ellipse 40% 40% at 80% 70%, rgba(232,161,77,0.07) 0%, transparent 60%),
             var(--bg);
         }
         .chess-grid {
           position: absolute; inset: 0;
           background-image:
-            linear-gradient(rgba(201,168,76,0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(201,168,76,0.03) 1px, transparent 1px);
-          background-size: 60px 60px;
+            linear-gradient(rgba(232,161,77,0.045) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(232,161,77,0.045) 1px, transparent 1px);
+          background-size: 40px 40px;
           mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 30%, transparent 100%);
         }
         .floating-piece {
@@ -287,29 +289,30 @@ export default function Homepage(): ReactElement {
         .hero-content { position: relative; z-index: 2; text-align: center; max-width: 860px; }
         .hero-badge {
           display: inline-flex; align-items: center; gap: 0.5rem;
-          border: 1px solid var(--border); background: rgba(201,168,76,0.06);
-          color: var(--gold); font-size: 0.75rem; letter-spacing: 0.14em;
-          text-transform: uppercase; padding: 0.35rem 1rem; border-radius: 100px;
+          border: 2px solid var(--border); background: rgba(143,206,92,0.08);
+          color: var(--gold-light); font-family: 'Tiny5', monospace;
+          font-size: 0.68rem; letter-spacing: 0.1em;
+          text-transform: uppercase; padding: 0.4rem 1rem; border-radius: 100px;
           margin-bottom: 2rem; animation: fadeUp 0.8s ease both;
         }
-        .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); animation: pulse 2s infinite; }
+        .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #8fce5c; animation: pulse 2s infinite; }
         @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
         .hero-title {
-          font-family: 'Cormorant Garamond', serif;
-          font-size: clamp(3rem, 8vw, 7rem); font-weight: 700;
-          line-height: 1.0; letter-spacing: -0.01em; color: var(--text);
+          font-family: 'Baloo 2', cursive;
+          font-size: clamp(2.6rem, 7vw, 6rem); font-weight: 700;
+          line-height: 1.12; letter-spacing: -0.01em; color: var(--text);
           animation: fadeUp 0.8s 0.1s ease both;
         }
         .hero-title .gold { color: var(--gold-light); }
-        .hero-title .line2 { display: block; }
+        .hero-title .line2 { display: block; margin-top: 0.3rem; }
         .hero-divider {
-          width: 60px; height: 2px;
+          width: 60px; height: 3px; border-radius: 2px;
           background: linear-gradient(90deg, transparent, var(--gold), transparent);
           margin: 1.8rem auto; animation: fadeUp 0.8s 0.2s ease both;
         }
         .hero-sub {
           font-size: 1.05rem; color: var(--muted); line-height: 1.7;
-          max-width: 520px; margin: 0 auto 2.5rem; font-weight: 300;
+          max-width: 520px; margin: 0 auto 2.5rem; font-weight: 400;
           animation: fadeUp 0.8s 0.3s ease both;
         }
         .hero-cta {
@@ -317,67 +320,68 @@ export default function Homepage(): ReactElement {
           animation: fadeUp 0.8s 0.4s ease both;
         }
         .btn-hero {
-          padding: 0.85rem 2.2rem; font-family: 'DM Sans', sans-serif;
-          font-size: 0.9rem; letter-spacing: 0.08em; cursor: pointer;
-          border-radius: 4px; transition: all 0.3s;
+          padding: 0.85rem 2.2rem; font-family: 'Quicksand', sans-serif;
+          font-size: 0.9rem; font-weight: 600; letter-spacing: 0.04em; cursor: pointer;
+          border-radius: 8px; transition: all 0.3s;
         }
         .btn-hero-gold {
-          background: linear-gradient(135deg, var(--gold) 0%, #8a6020 100%);
-          color: #0a0a0c; border: none; font-weight: 700;
+          background: linear-gradient(135deg, #8fce5c 0%, #4f8a2e 100%);
+          color: #fffceb; border: 2px solid #6fa83f; font-weight: 700;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 0 rgba(0,0,0,0.2);
         }
-        .btn-hero-gold:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(201,168,76,0.3); background: linear-gradient(135deg, var(--gold-light), var(--gold)); }
+        .btn-hero-gold:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(143,206,92,0.35); background: linear-gradient(135deg, #a3e070, #5f9c3a); }
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(28px); }
           to { opacity: 1; transform: translateY(0); }
         }
 
         /* STATS */
-        .stats-bar { background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 2.2rem 2rem; }
+        .stats-bar { background: var(--bg2); border-top: 2px solid var(--border); border-bottom: 2px solid var(--border); padding: 2.2rem 2rem; }
         .stats-inner { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; text-align: center; }
-        .stat-val { font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; font-weight: 700; color: var(--gold-light); }
-        .stat-label { font-size: 0.78rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 0.2rem; }
+        .stat-val { font-family: 'Tiny5', monospace; font-size: 1.8rem; font-weight: 700; color: var(--gold-light); }
+        .stat-label { font-size: 0.78rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 0.3rem; }
 
         /* FEATURES */
         .features { padding: 7rem 2rem; background: var(--bg); }
-        .section-label { text-align: center; font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 0.75rem; }
-        .section-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(2rem, 4vw, 3rem); font-weight: 600; text-align: center; color: var(--text); margin-bottom: 4rem; }
-        .features-grid { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5px; border: 1.5px solid var(--border); }
+        .section-label { text-align: center; font-family: 'Tiny5', monospace; font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); margin-bottom: 0.75rem; }
+        .section-title { font-family: 'Baloo 2', cursive; font-size: clamp(1.8rem, 3.6vw, 2.7rem); font-weight: 700; text-align: center; color: var(--text); margin-bottom: 4rem; }
+        .features-grid { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px; border: 2px solid var(--border); border-radius: 10px; overflow: hidden; }
         .feature-card { background: var(--bg2); padding: 2.5rem; transition: background 0.3s; cursor: default; }
         .feature-card:hover { background: var(--surface); }
         .feature-icon { font-size: 2.2rem; margin-bottom: 1rem; }
-        .feature-title { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; font-weight: 600; color: var(--gold-light); margin-bottom: 0.6rem; }
-        .feature-desc { color: var(--muted); font-size: 0.9rem; line-height: 1.7; font-weight: 300; }
+        .feature-title { font-family: 'Baloo 2', cursive; font-size: 1.2rem; font-weight: 700; color: var(--gold-light); margin-bottom: 0.7rem; }
+        .feature-desc { color: var(--muted); font-size: 0.9rem; line-height: 1.7; font-weight: 400; }
 
         /* BOARD SECTION */
         .board-section {
           padding: 6rem 2rem; background: var(--bg2);
           display: flex; align-items: center; justify-content: center;
           gap: 5rem; flex-wrap: wrap;
-          border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+          border-top: 2px solid var(--border); border-bottom: 2px solid var(--border);
         }
-        .mini-board { display: grid; grid-template-columns: repeat(8, 1fr); width: 280px; height: 280px; border: 2px solid var(--gold-dim); box-shadow: 0 0 60px rgba(201,168,76,0.1); flex-shrink: 0; }
+        .mini-board { display: grid; grid-template-columns: repeat(8, 1fr); width: 280px; height: 280px; border: 4px solid var(--gold-dim); border-radius: 8px; box-shadow: 0 0 0 2px #5c4326, 0 0 50px rgba(143,206,92,0.12); flex-shrink: 0; overflow: hidden; }
         .cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
-        .cell.light { background: #2a2520; }
-        .cell.dark2 { background: #1a1714; }
-        .cell.gold-cell { background: rgba(201,168,76,0.18); }
+        .cell.light { background: #e8dcb5; }
+        .cell.dark2 { background: #7a8450; }
+        .cell.gold-cell { background: rgba(232,161,77,0.45); }
         .board-copy { max-width: 380px; }
-        .board-copy h2 { font-family: 'Cormorant Garamond', serif; font-size: 2.5rem; font-weight: 700; color: var(--text); line-height: 1.15; margin-bottom: 1.2rem; }
+        .board-copy h2 { font-family: 'Baloo 2', cursive; font-size: 2.1rem; font-weight: 700; color: var(--text); line-height: 1.3; margin-bottom: 1.2rem; }
         .board-copy h2 em { color: var(--gold-light); font-style: normal; }
-        .board-copy p { color: var(--muted); font-size: 0.92rem; line-height: 1.8; font-weight: 300; margin-bottom: 2rem; }
+        .board-copy p { color: var(--muted); font-size: 0.92rem; line-height: 1.8; font-weight: 400; margin-bottom: 2rem; }
 
         /* CTA */
         .cta-section { padding: 8rem 2rem; text-align: center; position: relative; overflow: hidden; background: var(--bg); }
-        .cta-glow { position: absolute; width: 600px; height: 300px; background: radial-gradient(ellipse, rgba(201,168,76,0.08) 0%, transparent 70%); top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+        .cta-glow { position: absolute; width: 600px; height: 300px; background: radial-gradient(ellipse, rgba(143,206,92,0.1) 0%, transparent 70%); top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
         .cta-inner { position: relative; z-index: 1; }
-        .cta-section h2 { font-family: 'Cormorant Garamond', serif; font-size: clamp(2.2rem, 5vw, 4rem); font-weight: 700; color: var(--text); margin-bottom: 1rem; }
-        .cta-section p { color: var(--muted); font-size: 1rem; margin-bottom: 2.5rem; font-weight: 300; }
+        .cta-section h2 { font-family: 'Baloo 2', cursive; font-size: clamp(1.9rem, 4.6vw, 3.1rem); font-weight: 700; color: var(--text); margin-bottom: 1.2rem; line-height: 1.35; }
+        .cta-section p { color: var(--muted); font-size: 1rem; margin-bottom: 2.5rem; font-weight: 400; }
 
         /* FOOTER */
-        footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 2.5rem 2.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
-        .footer-logo { font-family: 'Cormorant Garamond', serif; font-size: 1.15rem; font-weight: 700; color: var(--gold); }
+        footer { background: var(--bg2); border-top: 2px solid var(--border); padding: 2.5rem 2.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+        .footer-logo { font-family: 'Baloo 2', cursive; font-size: 1.05rem; font-weight: 700; color: var(--gold); }
         .footer-links { display: flex; gap: 1.5rem; }
-        .footer-links a { color: var(--muted); font-size: 0.8rem; text-decoration: none; transition: color 0.2s; }
-        .footer-links a:hover { color: var(--gold-light); }
+        .footer-links button { color: var(--muted); font-size: 0.8rem; text-decoration: none; transition: color 0.2s; background: none; border: none; cursor: pointer; font-family: 'Quicksand', sans-serif; }
+        .footer-links button:hover { color: var(--gold-light); }
         .footer-copy { color: var(--muted); font-size: 0.75rem; }
 
         /* MOBILE */
@@ -386,7 +390,7 @@ export default function Homepage(): ReactElement {
           .hamburger { display: flex; }
           .mobile-menu {
             position: fixed; inset: 0; z-index: 99;
-            background: rgba(10,10,12,0.97);
+            background: rgba(43,32,20,0.97);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             gap: 2rem;
           }
@@ -403,7 +407,7 @@ export default function Homepage(): ReactElement {
       {/* NAVBAR */}
       <nav className={`navbar${scrolled ? " scrolled" : ""}`}>
         <a href="#" className="logo">
-          <span className="logo-icon">♛</span>
+          <span className="logo-icon">🌻</span>
           <span>
             Chill Chess Indo
             <span className="logo-sub">Play · Learn · Rise</span>
@@ -541,7 +545,7 @@ export default function Homepage(): ReactElement {
 
       {/* FOOTER */}
       <footer>
-        <div className="footer-logo">♛ Chill Chess Indo</div>
+        <div className="footer-logo">🌻 Chill Chess Indo</div>
         <div className="footer-links">
           {footer.map((l) => (
             <button key={l.text} onClick={() => navigate(l.link)}>
