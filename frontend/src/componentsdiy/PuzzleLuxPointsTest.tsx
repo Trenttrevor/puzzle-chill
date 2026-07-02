@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { CSSProperties } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess } from "chess.js";
 import type { PieceDropHandlerArgs } from "react-chessboard";
@@ -14,12 +15,17 @@ type Puzzles = {
 };
 
 type Status = "playing" | "wrong" | "correct";
-type Theme = "skewer" | "pin" | "fork";
+type Theme = "skewer" | "pin" | "fork" | "middlegame";
+interface CaptureBurst {
+  id: number;
+  square: string;
+}
 
 const themes: { value: Theme; label: string }[] = [
   { value: "skewer", label: "Skewer" },
   { value: "pin", label: "Pin" },
   { value: "fork", label: "Fork" },
+  { value: "middlegame", label: "Middlegame" },
 ];
 
 const pieceNames: Record<string, string> = {
@@ -31,6 +37,33 @@ const pieceNames: Record<string, string> = {
   k: "king",
 };
 
+/* For en passant, the captured pawn sits behind the destination square, not on it. */
+function capturedSquare(move: {
+  to: string;
+  from: string;
+  flags: string;
+}): string {
+  if (move.flags.includes("e")) {
+    const file = move.to[0];
+    const rank = move.from[1];
+    return `${file}${rank}`;
+  }
+  return move.to;
+}
+
+/* Always compute as if board is white-oriented (a1 bottom-left); the parent
+   .plx-capture-layer flips itself with a CSS transform when orientation is black,
+   so the math here stays identical to the always-white BotEasy.tsx board. */
+function squareToPercent(square: string): { left: string; top: string } {
+  const file = square.charCodeAt(0) - "a".charCodeAt(0); // 0-7
+  const rank = parseInt(square[1], 10) - 1; // 0-7
+  const col = file;
+  const row = 7 - rank;
+  const left = `${(col + 0.5) * 12.5}%`;
+  const top = `${(row + 0.5) * 12.5}%`;
+  return { left, top };
+}
+
 const PuzzleLuxPointsTest = () => {
   const [game, setGame] = useState<Chess>(new Chess());
   const [moveIndex, setMoveIndex] = useState(0);
@@ -39,6 +72,17 @@ const PuzzleLuxPointsTest = () => {
   const [theme, setTheme] = useState<Theme>("skewer");
   const [boardVisible, setBoardVisible] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
+  const [captureBursts, setCaptureBursts] = useState<CaptureBurst[]>([]);
+  const [burstId, setBurstId] = useState(0);
+
+  const spawnCaptureBurst = (square: string) => {
+    const id = burstId + 1;
+    setBurstId(id);
+    setCaptureBursts((prev) => [...prev, { id, square }]);
+    setTimeout(() => {
+      setCaptureBursts((prev) => prev.filter((b) => b.id !== id));
+    }, 650);
+  };
 
   const allThemes = new Set(puzzlesData.flatMap((puzzle) => puzzle.themes));
   console.log([...allThemes]);
@@ -56,6 +100,7 @@ const PuzzleLuxPointsTest = () => {
   const reset = () => {
     setBoardVisible(false);
     setHint(null);
+    setCaptureBursts([]);
     const newGame = new Chess(currentPuzzle.fen);
     setPlayerColor(newGame.turn() === "w" ? "b" : "w");
     setStatus("playing");
@@ -109,6 +154,10 @@ const PuzzleLuxPointsTest = () => {
       return true;
     }
 
+    if (move.captured) {
+      spawnCaptureBurst(capturedSquare(move));
+    }
+
     setHint(null);
     const nextIndex = moveIndex + 1;
     setMoveIndex(nextIndex);
@@ -129,11 +178,14 @@ const PuzzleLuxPointsTest = () => {
     const move = currentPuzzle.moves[index];
     if (!move) return;
     const newGame = new Chess(pos.fen());
-    newGame.move({
+    const result = newGame.move({
       from: move.slice(0, 2),
       to: move.slice(2, 4),
       promotion: move[4] as "q" | "r" | "b" | "n" | undefined,
     });
+    if (result?.captured) {
+      spawnCaptureBurst(capturedSquare(result));
+    }
     setMoveIndex(index + 1);
     setGame(newGame);
   };
@@ -147,17 +199,17 @@ const PuzzleLuxPointsTest = () => {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Tiny5&family=Baloo+2:wght@500;600;700;800&family=Quicksand:wght@300;400;500;600;700&display=swap');
 
         :root {
-          --gold:       #C9A84C;
-          --gold-light: #E8C97A;
-          --gold-dim:   #8a6e2f;
-          --bg:         #0a0a0c;
-          --bg2:        #111115;
-          --border:     rgba(201,168,76,0.16);
-          --text:       #f0ece0;
-          --muted:      #6e6860;
+          --gold:       #e8a14d;
+          --gold-light: #ffcb6b;
+          --gold-dim:   #9c6b2e;
+          --bg:         #2b2014;
+          --bg2:        #3a2c1a;
+          --border:     rgba(232,161,77,0.22);
+          --text:       #f3e9d2;
+          --muted:      #b89a72;
         }
 
         html, body { margin: 0; padding: 0; height: 100%; }
@@ -168,7 +220,10 @@ const PuzzleLuxPointsTest = () => {
           position: fixed; inset: 0;
           display: flex; flex-direction: column;
           background: var(--bg);
-          font-family: 'DM Sans', sans-serif;
+          background-image:
+            radial-gradient(circle at 15% 20%, rgba(122,168,76,0.10) 0%, transparent 45%),
+            radial-gradient(circle at 85% 80%, rgba(76,122,168,0.08) 0%, transparent 45%);
+          font-family: 'Quicksand', sans-serif;
           color: var(--text);
           overflow: hidden;
         }
@@ -176,9 +231,9 @@ const PuzzleLuxPointsTest = () => {
           content: '';
           position: absolute; inset: 0; pointer-events: none; z-index: 0;
           background-image:
-            linear-gradient(rgba(201,168,76,0.022) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(201,168,76,0.022) 1px, transparent 1px);
-          background-size: 56px 56px;
+            linear-gradient(rgba(232,161,77,0.035) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(232,161,77,0.035) 1px, transparent 1px);
+          background-size: 32px 32px;
         }
 
         /* ── DESKTOP layout ── */
@@ -195,84 +250,87 @@ const PuzzleLuxPointsTest = () => {
           display: flex; flex-direction: column;
           padding: 1rem;
           gap: 0.65rem;
-          border-right: 1px solid var(--border);
+          border-right: 3px solid var(--border);
+          background: rgba(58,44,26,0.45);
           overflow: hidden;
           grid-area: left;
         }
         .plx-panel-r {
           border-right: none;
-          border-left: 1px solid var(--border);
+          border-left: 3px solid var(--border);
           grid-area: right;
         }
 
         .plx-slabel {
-          font-size: 0.7rem; letter-spacing: 0.2em;
-          text-transform: uppercase; color: var(--gold);
+          font-family: 'Tiny5', monospace;
+          font-size: 0.7rem; letter-spacing: 0.12em;
+          text-transform: uppercase; color: var(--gold-light);
           padding-bottom: 0.4rem;
-          border-bottom: 1px solid var(--border);
+          border-bottom: 2px dashed var(--border);
           flex-shrink: 0;
         }
 
         .plx-tbtn {
           width: 100%; display: flex; align-items: center; gap: 0.5rem;
-          padding: 0.45rem 0.65rem;
-          background: transparent; border: 1px solid var(--border);
-          color: var(--muted); font-family: 'DM Sans', sans-serif;
-          font-size: 0.75rem; cursor: pointer; border-radius: 3px;
+          padding: 0.5rem 0.65rem;
+          background: rgba(58,44,26,0.6); border: 2px solid var(--border);
+          color: var(--muted); font-family: 'Quicksand', sans-serif; font-weight: 600;
+          font-size: 0.76rem; cursor: pointer; border-radius: 6px;
           transition: all 0.18s; text-align: left;
         }
-        .plx-tbtn:hover { border-color: var(--gold-dim); color: var(--gold-light); background: rgba(201,168,76,0.05); }
-        .plx-tbtn.active { border-color: var(--gold); background: rgba(201,168,76,0.1); color: var(--gold-light); }
+        .plx-tbtn:hover { border-color: var(--gold-dim); color: var(--gold-light); background: rgba(232,161,77,0.08); transform: translateY(-1px); }
+        .plx-tbtn.active { border-color: var(--gold); background: rgba(232,161,77,0.14); color: var(--gold-light); }
 
         .plx-info-card {
-          border: 1px solid var(--border); background: rgba(17,17,21,0.5);
-          border-radius: 3px; overflow: hidden; flex-shrink: 0;
+          border: 2px solid var(--border); background: rgba(58,44,26,0.55);
+          border-radius: 6px; overflow: hidden; flex-shrink: 0;
         }
         .plx-info-row {
           display: flex; justify-content: space-between; align-items: center;
           padding: 0.35rem 0.6rem;
-          border-bottom: 1px solid rgba(201,168,76,0.07);
+          border-bottom: 1px solid rgba(232,161,77,0.1);
           font-size: 0.68rem;
         }
         .plx-info-row:last-child { border-bottom: none; }
         .plx-il { color: var(--muted); }
-        .plx-iv { font-size: 0.82rem; font-weight: 600; color: var(--gold-light); }
+        .plx-iv { font-size: 0.82rem; font-weight: 700; color: var(--gold-light); }
 
         .plx-btn {
           width: 100%;
-          padding: 0.45rem 0.6rem;
-          font-family: 'DM Sans', sans-serif; font-size: 0.72rem; letter-spacing: 0.04em;
-          cursor: pointer; border-radius: 3px; transition: all 0.2s;
-          border: 1px solid var(--border); background: transparent; color: var(--muted);
+          padding: 0.5rem 0.6rem;
+          font-family: 'Quicksand', sans-serif; font-weight: 600; font-size: 0.74rem; letter-spacing: 0.02em;
+          cursor: pointer; border-radius: 6px; transition: all 0.2s;
+          border: 2px solid var(--border); background: rgba(58,44,26,0.6); color: var(--muted);
           text-align: center;
         }
-        .plx-btn:hover { border-color: var(--gold-dim); color: var(--gold-light); background: rgba(201,168,76,0.06); }
+        .plx-btn:hover { border-color: var(--gold-dim); color: var(--gold-light); background: rgba(232,161,77,0.1); transform: translateY(-1px); }
         .plx-btn-gold {
-          background: linear-gradient(135deg, var(--gold) 0%, #7a540f 100%);
-          border-color: transparent; color: #0a0a0c; font-weight: 600;
+          background: linear-gradient(135deg, #8fce5c 0%, #4f8a2e 100%);
+          border-color: #6fa83f; color: #fffceb; font-weight: 700;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 0 rgba(0,0,0,0.2);
         }
         .plx-btn-gold:hover {
-          background: linear-gradient(135deg, var(--gold-light), var(--gold));
+          background: linear-gradient(135deg, #a3e070, #5f9c3a);
           transform: translateY(-1px);
-          box-shadow: 0 4px 14px rgba(201,168,76,0.22);
+          box-shadow: 0 4px 14px rgba(143,206,92,0.3);
         }
         .plx-btn-hint {
-          border-color: rgba(201,168,76,0.45);
+          border-color: rgba(232,161,77,0.5);
           color: var(--gold-light);
-          background: rgba(201,168,76,0.07);
+          background: rgba(232,161,77,0.09);
         }
         .plx-btn-hint:hover {
           border-color: var(--gold);
-          background: rgba(201,168,76,0.13);
+          background: rgba(232,161,77,0.16);
           color: var(--gold-light);
         }
         .plx-hint-text {
           font-size: 0.68rem;
           color: var(--gold-light);
-          border: 1px solid rgba(201,168,76,0.25);
-          border-radius: 3px;
+          border: 2px solid rgba(232,161,77,0.3);
+          border-radius: 6px;
           padding: 0.35rem 0.6rem;
-          background: rgba(201,168,76,0.06);
+          background: rgba(232,161,77,0.08);
         }
 
         /* Centre column */
@@ -286,14 +344,15 @@ const PuzzleLuxPointsTest = () => {
 
         .plx-status {
           display: inline-flex; align-items: center; gap: 0.4rem;
-          font-size: 0.68rem; letter-spacing: 0.06em;
-          padding: 0.22rem 0.75rem; border-radius: 100px; border: 1px solid;
+          font-family: 'Tiny5', monospace;
+          font-size: 0.7rem; letter-spacing: 0.04em;
+          padding: 0.28rem 0.85rem; border-radius: 100px; border: 2px solid;
           transition: all 0.3s; flex-shrink: 0;
           white-space: nowrap;
         }
-        .plx-status-playing { border-color: var(--border); color: var(--muted); }
-        .plx-status-correct { border-color: rgba(100,200,100,0.35); color: #7ed97e; background: rgba(100,200,100,0.07); }
-        .plx-status-wrong   { border-color: rgba(220,80,80,0.35); color: #e07070; background: rgba(220,80,80,0.07); }
+        .plx-status-playing { border-color: var(--border); color: var(--muted); background: rgba(58,44,26,0.4); }
+        .plx-status-correct { border-color: rgba(143,206,92,0.45); color: #8fce5c; background: rgba(143,206,92,0.1); }
+        .plx-status-wrong   { border-color: rgba(224,112,90,0.4); color: #e0705a; background: rgba(224,112,90,0.1); }
         .plx-sdot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; animation: sdot 2s infinite; flex-shrink: 0; }
         @keyframes sdot { 0%,100%{opacity:1} 50%{opacity:0.25} }
 
@@ -303,44 +362,89 @@ const PuzzleLuxPointsTest = () => {
           width: min(calc(100vh - 52px - 110px), calc(100vw - 380px - 2.5rem));
           aspect-ratio: 1;
           flex-shrink: 0;
+          border-radius: 8px;
+          box-shadow: 0 0 0 4px #5c4326, 0 0 0 6px var(--gold-dim), 0 8px 24px rgba(0,0,0,0.4);
         }
         .plx-board-wrap > div { width: 100% !important; }
+
+        /* CAPTURE BURST — little harvest pop where a piece is taken */
+        .plx-capture-layer {
+          position: absolute; inset: 0;
+          pointer-events: none; z-index: 5;
+          transition: none;
+        }
+        .plx-capture-burst {
+          position: absolute;
+          width: 12.5%; height: 12.5%;
+          display: flex; align-items: center; justify-content: center;
+          pointer-events: none; z-index: 5;
+          transform: translate(-50%, -50%);
+        }
+        .plx-capture-burst-inner {
+          position: relative;
+          width: 100%; height: 100%;
+          display: flex; align-items: center; justify-content: center;
+        }
+        .plx-capture-burst-ring {
+          position: absolute; inset: 0;
+          border-radius: 50%;
+          border: 3px solid #ffcb6b;
+          animation: plxCaptureRing 0.55s ease-out forwards;
+        }
+        .plx-capture-burst-leaf {
+          position: absolute;
+          font-size: 1.1rem;
+          animation: plxCaptureLeaf 0.6s ease-out forwards;
+        }
+        .plx-capture-burst-leaf:nth-child(2) { animation-delay: 0.02s; }
+        .plx-capture-burst-leaf:nth-child(3) { animation-delay: 0.05s; }
+        .plx-capture-burst-leaf:nth-child(4) { animation-delay: 0.08s; }
+        @keyframes plxCaptureRing {
+          0%   { opacity: 0.9; transform: scale(0.3); border-width: 4px; }
+          100% { opacity: 0;   transform: scale(1.9); border-width: 1px; }
+        }
+        @keyframes plxCaptureLeaf {
+          0%   { opacity: 1; transform: translate(0,0) scale(0.6) rotate(0deg); }
+          100% { opacity: 0; transform: translate(var(--cbx,18px), var(--cby,-22px)) scale(1.1) rotate(50deg); }
+        }
 
         .plx-overlay {
           position: absolute; inset: 0; z-index: 10;
           display: flex; flex-direction: column;
           align-items: center; justify-content: center; gap: 0.6rem;
-          backdrop-filter: blur(8px); border-radius: 2px;
+          backdrop-filter: blur(8px); border-radius: 8px;
           animation: fadeIn 0.25s ease;
         }
         @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-        .plx-ov-correct { background: rgba(10,10,12,0.88); border: 1px solid rgba(100,200,100,0.25); }
-        .plx-ov-icon  { font-family: 'Cormorant Garamond', serif; font-size: 2.4rem; }
-        .plx-ov-title { font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; font-weight: 700; }
-        .plx-ov-correct .plx-ov-title { color: #7ed97e; }
+        .plx-ov-correct { background: rgba(43,32,20,0.92); border: 2px solid rgba(143,206,92,0.3); }
+        .plx-ov-icon  { font-size: 2.6rem; }
+        .plx-ov-title { font-family: 'Baloo 2', cursive; font-size: 1.5rem; font-weight: 700; }
+        .plx-ov-correct .plx-ov-title { color: #8fce5c; }
         .plx-ov-sub { color: var(--muted); font-size: 0.72rem; }
         .plx-ov-btns { display: flex; gap: 0.5rem; margin-top: 0.3rem; }
-        .plx-ov-btns .plx-btn { width: auto; padding: 0.4rem 1rem; }
+        .plx-ov-btns .plx-btn { width: auto; padding: 0.45rem 1.1rem; }
 
         .plx-prog { width: 100%; flex-shrink: 0; }
         .plx-prog-labels {
           display: flex; justify-content: space-between;
-          font-size: 0.58rem; letter-spacing: 0.1em;
+          font-size: 0.6rem; letter-spacing: 0.08em;
           text-transform: uppercase; color: var(--muted); margin-bottom: 0.3rem;
+          font-weight: 600;
         }
-        .plx-prog-track { height: 2px; background: rgba(201,168,76,0.08); border-radius: 2px; overflow: hidden; }
+        .plx-prog-track { height: 5px; background: rgba(232,161,77,0.12); border-radius: 4px; overflow: hidden; }
         .plx-prog-fill {
           height: 100%;
-          background: linear-gradient(90deg, var(--gold-dim), var(--gold));
-          border-radius: 2px; transition: width 0.4s ease;
+          background: linear-gradient(90deg, #4f8a2e, #8fce5c);
+          border-radius: 4px; transition: width 0.4s ease;
         }
         .plx-loading {
           position: absolute; inset: 0;
           display: flex; align-items: center; justify-content: center;
-          font-family: 'Cormorant Garamond', serif;
-          font-size: 1.4rem; color: var(--gold-light);
-          background: rgba(10,10,12,0.92);
-          border: 1px solid var(--border);
+          font-family: 'Baloo 2', cursive;
+          font-size: 1.3rem; color: var(--gold-light);
+          background: rgba(43,32,20,0.92);
+          border: 2px solid var(--border);
+          border-radius: 8px;
           z-index: 20;
         }
 
@@ -352,7 +456,8 @@ const PuzzleLuxPointsTest = () => {
           justify-content: space-between;
           gap: 0.4rem;
           padding: 0.35rem 0.75rem;
-          border-bottom: 1px solid var(--border);
+          border-bottom: 2px solid var(--border);
+          background: rgba(58,44,26,0.4);
           flex-shrink: 0;
         }
         .plx-mobile-top-themes {
@@ -371,7 +476,8 @@ const PuzzleLuxPointsTest = () => {
           flex-direction: row; align-items: center;
           gap: 0.4rem;
           padding: 0.35rem 0.75rem;
-          border-top: 1px solid var(--border);
+          border-top: 2px solid var(--border);
+          background: rgba(58,44,26,0.4);
           flex-shrink: 0;
           flex-wrap: nowrap;
           overflow-x: auto;
@@ -381,22 +487,22 @@ const PuzzleLuxPointsTest = () => {
 
         .plx-mb-chip {
           display: flex; align-items: center;
-          padding: 0.28rem 0.55rem;
-          border: 1px solid var(--border); border-radius: 3px;
-          background: transparent; color: var(--muted);
-          font-family: 'DM Sans', sans-serif; font-size: 0.65rem;
+          padding: 0.3rem 0.6rem;
+          border: 2px solid var(--border); border-radius: 6px;
+          background: rgba(58,44,26,0.5); color: var(--muted);
+          font-family: 'Quicksand', sans-serif; font-weight: 600; font-size: 0.65rem;
           white-space: nowrap; cursor: pointer; flex-shrink: 0;
           transition: all 0.18s;
         }
         .plx-mb-chip:hover { border-color: var(--gold-dim); color: var(--gold-light); }
-        .plx-mb-chip.active { border-color: var(--gold); color: var(--gold-light); background: rgba(201,168,76,0.1); }
+        .plx-mb-chip.active { border-color: var(--gold); color: var(--gold-light); background: rgba(232,161,77,0.14); }
         .plx-mb-chip-gold {
-          background: linear-gradient(135deg, var(--gold) 0%, #7a540f 100%);
-          border-color: transparent; color: #0a0a0c; font-weight: 600;
+          background: linear-gradient(135deg, #8fce5c 0%, #4f8a2e 100%);
+          border-color: #6fa83f; color: #fffceb; font-weight: 700;
         }
         .plx-mb-chip-hint {
-          border-color: rgba(201,168,76,0.45); color: var(--gold-light);
-          background: rgba(201,168,76,0.07);
+          border-color: rgba(232,161,77,0.5); color: var(--gold-light);
+          background: rgba(232,161,77,0.09);
         }
         .plx-mb-divider {
           width: 1px; height: 16px;
@@ -408,11 +514,11 @@ const PuzzleLuxPointsTest = () => {
           gap: 0;
         }
         .plx-mb-stat-l { font-size: 0.5rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; line-height: 1; }
-        .plx-mb-stat-v { font-size: 0.72rem; font-weight: 600; color: var(--gold-light); line-height: 1.2; }
+        .plx-mb-stat-v { font-size: 0.72rem; font-weight: 700; color: var(--gold-light); line-height: 1.2; }
         .plx-mb-hint-text {
           font-size: 0.62rem; color: var(--gold-light);
-          border: 1px solid rgba(201,168,76,0.25); border-radius: 3px;
-          padding: 0.25rem 0.5rem; background: rgba(201,168,76,0.06);
+          border: 2px solid rgba(232,161,77,0.3); border-radius: 6px;
+          padding: 0.25rem 0.5rem; background: rgba(232,161,77,0.08);
           white-space: nowrap; flex-shrink: 0;
         }
 
@@ -448,7 +554,7 @@ const PuzzleLuxPointsTest = () => {
             padding: 0.18rem 0.6rem;
           }
 
-          .plx-prog-labels { font-size: 0.52rem; }
+          .plx-prog-labels { font-size: 0.54rem; }
         }
 
         /* Tablet: narrow sidebar or collapse */
@@ -457,9 +563,9 @@ const PuzzleLuxPointsTest = () => {
             grid-template-columns: 140px 1fr 140px;
           }
           .plx-panel, .plx-panel-r { padding: 0.75rem 0.6rem; gap: 0.5rem; }
-          .plx-slabel { font-size: 0.6rem; }
-          .plx-tbtn { font-size: 0.68rem; padding: 0.38rem 0.5rem; }
-          .plx-btn { font-size: 0.66rem; padding: 0.38rem 0.5rem; }
+          .plx-slabel { font-size: 0.62rem; }
+          .plx-tbtn { font-size: 0.68rem; padding: 0.42rem 0.5rem; }
+          .plx-btn { font-size: 0.66rem; padding: 0.42rem 0.5rem; }
           .plx-info-row { font-size: 0.62rem; padding: 0.3rem 0.5rem; }
           .plx-iv { font-size: 0.75rem; }
 
@@ -513,7 +619,7 @@ const PuzzleLuxPointsTest = () => {
         <div className="plx-body">
           {/* LEFT — theme filter (desktop/tablet) */}
           <div className="plx-panel">
-            <p className="plx-slabel">Choose Theme</p>
+            <p className="plx-slabel">🌱 Choose Theme</p>
             {themes.map((t) => (
               <button
                 key={t.value}
@@ -536,7 +642,9 @@ const PuzzleLuxPointsTest = () => {
             </div>
 
             <div className="plx-board-wrap">
-              {!boardVisible && <div className="plx-loading">Loading…</div>}
+              {!boardVisible && (
+                <div className="plx-loading">Growing the puzzle…</div>
+              )}
               <div
                 style={{
                   opacity: boardVisible ? 1 : 0,
@@ -548,13 +656,87 @@ const PuzzleLuxPointsTest = () => {
                     onPieceDrop,
                     position: game.fen(),
                     boardOrientation: playerColor === "w" ? "white" : "black",
+                    darkSquareStyle: { backgroundColor: "#7a8450" },
+                    lightSquareStyle: { backgroundColor: "#e8dcb5" },
                   }}
                 />
               </div>
 
+              <div
+                className="plx-capture-layer"
+                style={{
+                  transform: playerColor === "b" ? "rotate(180deg)" : "none",
+                }}
+              >
+                {captureBursts.map((b) => {
+                  const pos = squareToPercent(b.square);
+                  return (
+                    <div
+                      key={b.id}
+                      className="plx-capture-burst"
+                      style={{ left: pos.left, top: pos.top }}
+                    >
+                      <div
+                        className="plx-capture-burst-inner"
+                        style={{
+                          transform:
+                            playerColor === "b" ? "rotate(180deg)" : "none",
+                        }}
+                      >
+                        <div className="plx-capture-burst-ring" />
+                        <span
+                          className="plx-capture-burst-leaf"
+                          style={
+                            {
+                              "--cbx": "20px",
+                              "--cby": "-24px",
+                            } as CSSProperties
+                          }
+                        >
+                          🍃
+                        </span>
+                        <span
+                          className="plx-capture-burst-leaf"
+                          style={
+                            {
+                              "--cbx": "-22px",
+                              "--cby": "-18px",
+                            } as CSSProperties
+                          }
+                        >
+                          🍂
+                        </span>
+                        <span
+                          className="plx-capture-burst-leaf"
+                          style={
+                            {
+                              "--cbx": "16px",
+                              "--cby": "20px",
+                            } as CSSProperties
+                          }
+                        >
+                          ✨
+                        </span>
+                        <span
+                          className="plx-capture-burst-leaf"
+                          style={
+                            {
+                              "--cbx": "-18px",
+                              "--cby": "18px",
+                            } as CSSProperties
+                          }
+                        >
+                          🍃
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
               {status === "correct" && (
                 <div className="plx-overlay plx-ov-correct">
-                  <div className="plx-ov-icon">♕</div>
+                  <div className="plx-ov-icon">🏆</div>
                   <div className="plx-ov-title">Brilliant!</div>
                   <div className="plx-ov-sub">
                     You found the winning combination.
