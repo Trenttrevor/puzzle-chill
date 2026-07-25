@@ -7,10 +7,54 @@ import { useStockfish } from "../bot/useStockfish";
 import NavbarLux from "@/componentsdiy/NavbarLux";
 
 /* ─────────────────────────────────────────────────────────
+   DIFFICULTY SETUPS
+   The handicap only applies to the bot (Black) — you (White)
+   always play with the complete, standard army.
+   Easy   → bot has no queen, no rooks
+   Medium → bot has no queen
+   Hard   → full, standard starting position for both sides
+   ───────────────────────────────────────────────────────── */
+type Difficulty = "easy" | "medium" | "hard";
+type View = "categories" | "game";
+
+interface DifficultyConfig {
+  label: string;
+  icon: string;
+  desc: string;
+  fen: string;
+}
+
+const DIFFICULTY_CONFIG: Record<Difficulty, DifficultyConfig> = {
+  easy: {
+    label: "Easy",
+    icon: "🌱",
+    desc: "Bot has no Queen, no Rook — you play with a full army",
+    // Black (bot): no queen, no rooks → no castling rights for Black.
+    // White (you): full standard setup, can still castle both sides.
+    fen: "1nb1kbn1/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQ - 0 1",
+  },
+  medium: {
+    label: "Medium",
+    icon: "🌿",
+    desc: "Bot has no Queen — you play with a full army",
+    // Black (bot): no queen, rooks stay → Black keeps castling rights.
+    fen: "rnb1kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+  },
+  hard: {
+    label: "Hard",
+    icon: "🌳",
+    desc: "Full setup on both sides — the real deal",
+    fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+  },
+};
+
+const DIFFICULTY_ORDER: Difficulty[] = ["easy", "medium", "hard"];
+
+/* ─────────────────────────────────────────────────────────
    STYLES — Stardew Valley theme
    ───────────────────────────────────────────────────────── */
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Tiny5&family=Quicksand:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Tiny5&family=Baloo+2:wght@600;700;800&family=Quicksand:wght@400;500;600;700&display=swap');
 
   :root {
     --gold:       #e8a14d;
@@ -61,7 +105,7 @@ const css = `
     padding: 1rem; gap: 0.7rem;
     border-right: 3px solid var(--border);
     background: rgba(58,44,26,0.45);
-    overflow: hidden;
+    overflow-y: auto; overflow-x: hidden;
     grid-area: left;
   }
   .cb-panel-r {
@@ -130,6 +174,16 @@ const css = `
   .cb-btn-danger { border-color: rgba(224,112,90,0.4); color: #d68a72; }
   .cb-btn-danger:hover { border-color: #e0705a; color: #e0705a; background: rgba(224,112,90,0.1); }
 
+  .cb-hint-text {
+    font-size: 0.7rem;
+    color: var(--gold-light);
+    border: 2px solid rgba(232,161,77,0.3);
+    border-radius: 6px;
+    padding: 0.5rem 0.65rem;
+    background: rgba(232,161,77,0.08);
+    line-height: 1.4;
+  }
+
   /* MOVE LOG */
   .cb-movelog {
     flex: 1; min-height: 0;
@@ -156,6 +210,78 @@ const css = `
     padding: 0.6rem 1rem; gap: 0.5rem;
     min-height: 0; overflow: hidden;
   }
+  .cb-center.is-categories {
+    align-items: stretch;
+    justify-content: center;
+    width: 100%;
+    overflow-y: auto;
+  }
+
+  /* ── Difficulty picker (centre, "categories" view) ── */
+  .cb-diff-wrap {
+    width: 100%; max-width: 760px; margin: 0 auto;
+    display: flex; flex-direction: column; gap: 1.1rem;
+  }
+  .cb-diff-intro { text-align: center; }
+  .cb-diff-intro-title {
+    font-family: 'Baloo 2', cursive; font-weight: 800;
+    font-size: 1.5rem; color: var(--gold-light); margin: 0 0 0.3rem;
+  }
+  .cb-diff-intro-sub { font-size: 0.8rem; color: var(--muted); margin: 0; }
+
+  .cb-diff-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 0.9rem;
+  }
+  .cb-diff-card {
+    position: relative;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 0.3rem;
+    padding: 1.1rem 1.15rem;
+    min-height: 140px;
+    background: rgba(58,44,26,0.6);
+    border: 2px solid var(--border);
+    border-left-width: 5px;
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+  }
+  .cb-diff-card:hover {
+    background: rgba(232,161,77,0.1);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 18px rgba(0,0,0,0.3);
+  }
+  .cb-diff-card.active {
+    border-color: var(--gold);
+    background: rgba(232,161,77,0.16);
+    box-shadow: 0 0 0 1px rgba(232,161,77,0.3);
+  }
+  .cb-diff-card-easy   { border-left-color: #8fce5c; }
+  .cb-diff-card-medium { border-left-color: var(--gold); }
+  .cb-diff-card-hard   { border-left-color: #e0705a; }
+  .cb-diff-card-icon { font-size: 1.6rem; }
+  .cb-diff-card-label {
+    font-family: 'Baloo 2', cursive; font-weight: 700;
+    font-size: 1.05rem; color: var(--text);
+  }
+  .cb-diff-card-desc { font-size: 0.74rem; color: var(--muted); line-height: 1.4; }
+  .cb-diff-card-tag {
+    position: absolute; top: 0.7rem; right: 0.8rem;
+    font-family: 'Tiny5', monospace; font-size: 0.6rem; letter-spacing: 0.06em;
+    color: var(--gold-light); text-transform: uppercase;
+  }
+
+  /* Puzzle-style back button */
+  .cb-back-btn {
+    align-self: flex-start;
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    background: transparent; border: none;
+    color: var(--muted); font-family: 'Quicksand', sans-serif; font-weight: 600;
+    font-size: 0.74rem; cursor: pointer; padding: 0.2rem 0;
+    flex-shrink: 0; transition: color 0.15s;
+  }
+  .cb-back-btn:hover { color: var(--gold-light); }
 
   /* STATUS PILL */
   .cb-status {
@@ -291,6 +417,18 @@ const css = `
     scrollbar-width: none;
   }
   .cb-mobile-top::-webkit-scrollbar { display: none; }
+  .cb-mb-back {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    background: rgba(58,44,26,0.6); border: 2px solid var(--border);
+    color: var(--muted); font-family: 'Quicksand', sans-serif; font-weight: 600;
+    font-size: 0.64rem; padding: 0.28rem 0.55rem; border-radius: 6px; cursor: pointer;
+    flex-shrink: 0;
+  }
+  .cb-mb-back:hover { border-color: var(--gold-dim); color: var(--gold-light); }
+  .cb-mb-title {
+    font-family: 'Baloo 2', cursive; font-weight: 700;
+    font-size: 0.76rem; color: var(--gold-light);
+  }
 
   /* ── MOBILE BOTTOM BAR ── */
   .cb-mobile-bottom {
@@ -353,7 +491,6 @@ const css = `
   @media (max-width: 680px) {
     .cb-panel, .cb-panel-r { display: none; }
     .cb-mobile-top    { display: flex; }
-    .cb-mobile-bottom { display: flex; }
 
     .cb-body {
       grid-template-columns: 1fr;
@@ -388,6 +525,12 @@ const css = `
     .cb-ov-icon  { font-size: 2.2rem; }
     .cb-ov-title { font-size: 1.3rem; }
     .cb-ov-sub   { font-size: 0.68rem; }
+
+    .cb-diff-grid { grid-template-columns: 1fr; }
+    .cb-diff-card { min-height: 100px; padding: 0.9rem 1rem; }
+
+    /* Only show the mobile action bar once a game is actually on screen */
+    .cb-mobile-bottom.is-visible { display: flex; }
   }
 
   @media (min-width: 681px) and (max-width: 900px) {
@@ -463,10 +606,14 @@ function squareToPercent(square: string): { left: string; top: string } {
    COMPONENT
    ───────────────────────────────────────────────────────── */
 const BotEasy = () => {
-  const START_FEN = "4k3/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
-  const chessRef = useRef<Chess>(new Chess(START_FEN));
+  /* view = "categories" → the difficulty grid in the centre.
+     view = "game"       → the actual chessboard in the centre. */
+  const [view, setView] = useState<View>("categories");
+  const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
 
-  const [fen, setFen] = useState(START_FEN);
+  const chessRef = useRef<Chess>(new Chess(DIFFICULTY_CONFIG.hard.fen));
+
+  const [fen, setFen] = useState(DIFFICULTY_CONFIG.hard.fen);
   const [status, setStatus] = useState<GameStatus>("playing");
   const [isThinking, setIsThinking] = useState(false);
   const [captureBursts, setCaptureBursts] = useState<CaptureBurst[]>([]);
@@ -485,6 +632,11 @@ const BotEasy = () => {
   const capturedWhiteRef = useRef<string[]>([]);
   const moveLogRef = useRef<HTMLDivElement>(null);
   const moveLogMobileRef = useRef<HTMLDivElement>(null);
+
+  /* Tap/click-to-move: the square currently selected, and the legal
+     destination squares for the piece sitting on it (shown as dots). */
+  const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+  const [legalTargets, setLegalTargets] = useState<string[]>([]);
 
   const scrollLog = () => {
     setTimeout(() => {
@@ -535,11 +687,14 @@ const BotEasy = () => {
 
   const { getBestMove } = useStockfish(handleBestMove);
 
-  const playerMove = useCallback(
-    ({ sourceSquare, targetSquare }: PieceDropHandlerArgs): boolean => {
+  /* Shared by drag-and-drop and tap/click-to-move. Returns true if a legal
+     chess move was made (regardless of what happens after). */
+  const attemptPlayerMove = useCallback(
+    (sourceSquare: string, targetSquare: string): boolean => {
       const game = chessRef.current;
       if (game.turn() !== "w") return false;
-      if (!targetSquare) return false;
+      if (!sourceSquare || !targetSquare || sourceSquare === targetSquare)
+        return false;
 
       const move = game.move({
         from: sourceSquare,
@@ -574,17 +729,107 @@ const BotEasy = () => {
     [getBestMove],
   );
 
-  const resetGame = () => {
-    chessRef.current = new Chess(START_FEN);
+  const playerMove = useCallback(
+    ({ sourceSquare, targetSquare }: PieceDropHandlerArgs): boolean => {
+      setSelectedSquare(null);
+      setLegalTargets([]);
+      if (!targetSquare) return false;
+      return attemptPlayerMove(sourceSquare, targetSquare);
+    },
+    [attemptPlayerMove],
+  );
+
+  /* Tap/click-to-move:
+     - click your own piece → select it, show legal dots
+     - click the same square again → deselect
+     - click a highlighted square → play the move
+     - click a different one of your own pieces → reselect */
+  const handleSquareClick = ({ square }: { square: string }) => {
+    const game = chessRef.current;
+    const interactive =
+      status === "playing" || status === "check" ? true : false;
+    if (!interactive || game.turn() !== "w") return;
+
+    if (selectedSquare && legalTargets.includes(square)) {
+      attemptPlayerMove(selectedSquare, square);
+      setSelectedSquare(null);
+      setLegalTargets([]);
+      return;
+    }
+
+    if (selectedSquare === square) {
+      setSelectedSquare(null);
+      setLegalTargets([]);
+      return;
+    }
+
+    const piece = game.get(square as any);
+    if (piece && piece.color === game.turn()) {
+      const moves = game.moves({
+        square: square as any,
+        verbose: true,
+      }) as Array<{
+        to: string;
+      }>;
+      setSelectedSquare(square);
+      setLegalTargets(moves.map((m) => m.to));
+    } else {
+      setSelectedSquare(null);
+      setLegalTargets([]);
+    }
+  };
+
+  /* Highlight the selected square and its legal destinations. Occupied
+     targets (captures) get a ring; empty targets get a small dot. */
+  const squareStyles = (() => {
+    const game = chessRef.current;
+    const styles: Record<string, CSSProperties> = {};
+    if (selectedSquare) {
+      styles[selectedSquare] = { background: "rgba(232,161,77,0.35)" };
+    }
+    legalTargets.forEach((sq) => {
+      const occupied = !!game.get(sq as any);
+      styles[sq] = occupied
+        ? {
+            background:
+              "radial-gradient(circle, transparent 58%, rgba(232,161,77,0.6) 60%)",
+          }
+        : {
+            background:
+              "radial-gradient(circle, rgba(232,161,77,0.6) 20%, transparent 21%)",
+          };
+    });
+    return styles;
+  })();
+
+  /* Pick a difficulty from the grid (or the left nav) → jump into the board
+     with that difficulty's starting setup. */
+  const startGame = (diff: Difficulty) => {
+    const startFen = DIFFICULTY_CONFIG[diff].fen;
+    chessRef.current = new Chess(startFen);
 
     movePairsRef.current = [];
     capturedBlackRef.current = [];
     capturedWhiteRef.current = [];
 
-    setFen(chessRef.current.fen());
+    setDifficulty(diff);
+    setFen(startFen);
     setStatus("playing");
     setIsThinking(false);
     setCaptureBursts([]);
+    setSelectedSquare(null);
+    setLegalTargets([]);
+    setView("game");
+  };
+
+  /* "New Game" while already playing → restart at the same difficulty. */
+  const resetGame = () => {
+    if (!difficulty) return;
+    startGame(difficulty);
+  };
+
+  const changeDifficulty = () => {
+    setView("categories");
   };
 
   const undoMove = () => {
@@ -609,6 +854,8 @@ const BotEasy = () => {
     setStatus(deriveStatus(g));
     setIsThinking(false);
     setCaptureBursts([]);
+    setSelectedSquare(null);
+    setLegalTargets([]);
   };
 
   const isOver = ["won", "lost", "draw"].includes(status);
@@ -629,246 +876,357 @@ const BotEasy = () => {
       <div className="cb-page">
         <NavbarLux />
 
-        {/* ── MOBILE TOP: move log ── */}
+        {/* ── MOBILE TOP ── */}
         <div className="cb-mobile-top">
-          <div className="cb-movelog-mobile" ref={moveLogMobileRef}>
-            {pairs.length === 0 && (
-              <span style={{ fontSize: "0.62rem", color: "var(--muted)" }}>
-                No moves yet…
-              </span>
-            )}
-            {pairs.map((pair, i) => {
-              const isLast = i === pairs.length - 1;
-              return (
-                <span className="cb-move-token" key={pair.num}>
-                  <span className="cb-move-token-num">{pair.num}.</span>
-                  <span
-                    className={`cb-move-token-w${isLast && !pair.black ? " cb-move-token-latest" : ""}`}
-                  >
-                    {pair.white}
+          {view === "game" ? (
+            <>
+              <button className="cb-mb-back" onClick={changeDifficulty}>
+                ← Difficulty
+              </button>
+              <div className="cb-movelog-mobile" ref={moveLogMobileRef}>
+                {pairs.length === 0 && (
+                  <span style={{ fontSize: "0.62rem", color: "var(--muted)" }}>
+                    No moves yet…
                   </span>
-                  {pair.black && (
-                    <span
-                      className={`cb-move-token-b${isLast && pair.black ? " cb-move-token-latest" : ""}`}
-                    >
-                      {pair.black}
+                )}
+                {pairs.map((pair, i) => {
+                  const isLast = i === pairs.length - 1;
+                  return (
+                    <span className="cb-move-token" key={pair.num}>
+                      <span className="cb-move-token-num">{pair.num}.</span>
+                      <span
+                        className={`cb-move-token-w${isLast && !pair.black ? " cb-move-token-latest" : ""}`}
+                      >
+                        {pair.white}
+                      </span>
+                      {pair.black && (
+                        <span
+                          className={`cb-move-token-b${isLast && pair.black ? " cb-move-token-latest" : ""}`}
+                        >
+                          {pair.black}
+                        </span>
+                      )}
                     </span>
-                  )}
-                </span>
-              );
-            })}
-            {isThinking && (
-              <div className="cb-think-inline">
-                <span className="cb-think-dot" />
-                <span className="cb-think-dot" />
-                <span className="cb-think-dot" />
+                  );
+                })}
+                {isThinking && (
+                  <div className="cb-think-inline">
+                    <span className="cb-think-dot" />
+                    <span className="cb-think-dot" />
+                    <span className="cb-think-dot" />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          ) : (
+            <span className="cb-mb-title">
+              🌻 Chill Bot — Choose Difficulty
+            </span>
+          )}
         </div>
 
         <div className="cb-body">
           {/* LEFT PANEL — desktop/tablet */}
           <div className="cb-panel">
-            <p className="cb-slabel-glow">🌻 Farm Chess</p>
-            <p className="cb-slabel">Actions</p>
-            <button className="cb-btn cb-btn-gold" onClick={resetGame}>
-              New Game
-            </button>
-            <button className="cb-btn cb-btn-danger" onClick={undoMove}>
-              Undo Last Move
-            </button>
+            <p className="cb-slabel-glow">🌻 Chill Bot Ready</p>
+            {view === "game" ? (
+              <>
+                <p className="cb-slabel">Actions</p>
+                <button className="cb-btn cb-btn-gold" onClick={resetGame}>
+                  New Game
+                </button>
+                <button className="cb-btn cb-btn-danger" onClick={undoMove}>
+                  Undo Last Move
+                </button>
+                <button className="cb-btn" onClick={changeDifficulty}>
+                  ← Change Difficulty
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="cb-slabel">Difficulty</p>
+                {DIFFICULTY_ORDER.map((key) => {
+                  const cfg = DIFFICULTY_CONFIG[key];
+                  return (
+                    <button
+                      key={key}
+                      className={`cb-btn${difficulty === key ? " cb-btn-gold" : ""}`}
+                      onClick={() => startGame(key)}
+                    >
+                      {cfg.icon} {cfg.label}
+                    </button>
+                  );
+                })}
+              </>
+            )}
           </div>
 
-          {/* CENTRE */}
-          <div className="cb-center">
-            <div className={`cb-status cb-status-${status}`}>
-              {!isOver && <span className="cb-sdot" />}
-              {statusLabel[status]}
-            </div>
-
-            {/* Bot bar */}
-            <div className="cb-player-bar">
-              <div className="cb-player-info">
-                <div className="cb-avatar cb-avatar-bot">🤖</div>
-                <div>
-                  <div className="cb-pname">Junimo Bot</div>
-                  <div className="cb-prating">Black</div>
-                </div>
-              </div>
-              <div className="cb-captured">
-                {capturedBlackRef.current.join(" ")}
-              </div>
-              {isThinking && (
-                <div className="cb-thinking">
-                  <span className="cb-think-dot" />
-                  <span className="cb-think-dot" />
-                  <span className="cb-think-dot" />
-                  thinking
-                </div>
-              )}
-            </div>
-
-            {/* Board */}
-            <div className="cb-board-wrap">
-              <div className="cb-corner cb-corner-tl" />
-              <div className="cb-corner cb-corner-tr" />
-              <div className="cb-corner cb-corner-bl" />
-              <div className="cb-corner cb-corner-br" />
-
-              {captureBursts.map((b) => {
-                const pos = squareToPercent(b.square);
-                return (
-                  <div
-                    key={b.id}
-                    className="cb-capture-burst"
-                    style={{ left: pos.left, top: pos.top }}
-                  >
-                    <div className="cb-capture-burst-ring" />
-                    <span
-                      className="cb-capture-burst-leaf"
-                      style={
-                        { "--cbx": "20px", "--cby": "-24px" } as CSSProperties
-                      }
-                    >
-                      🍃
-                    </span>
-                    <span
-                      className="cb-capture-burst-leaf"
-                      style={
-                        { "--cbx": "-22px", "--cby": "-18px" } as CSSProperties
-                      }
-                    >
-                      🍂
-                    </span>
-                    <span
-                      className="cb-capture-burst-leaf"
-                      style={
-                        { "--cbx": "16px", "--cby": "20px" } as CSSProperties
-                      }
-                    >
-                      ✨
-                    </span>
-                    <span
-                      className="cb-capture-burst-leaf"
-                      style={
-                        { "--cbx": "-18px", "--cby": "18px" } as CSSProperties
-                      }
-                    >
-                      🍃
-                    </span>
-                  </div>
-                );
-              })}
-
-              {isOver && (
-                <div className="cb-overlay">
-                  <div className="cb-ov-icon">
-                    {status === "won" ? "🏆" : status === "lost" ? "🥀" : "🌾"}
-                  </div>
-                  <p
-                    className="cb-ov-title"
-                    style={{
-                      color:
-                        status === "won"
-                          ? "#8fce5c"
-                          : status === "lost"
-                            ? "#e0705a"
-                            : "var(--gold-light)",
-                    }}
-                  >
-                    {status === "won"
-                      ? "Victory"
-                      : status === "lost"
-                        ? "Defeated"
-                        : "Draw"}
+          {/* CENTRE — either the difficulty grid, or the board */}
+          <div
+            className={`cb-center${view === "categories" ? " is-categories" : ""}`}
+          >
+            {view === "categories" ? (
+              <div className="cb-diff-wrap">
+                <div className="cb-diff-intro">
+                  <p className="cb-diff-intro-title">🌻 Chill Bot Ready!!</p>
+                  <p className="cb-diff-intro-sub">
+                    Pick a difficulty to start your match against the engine.
                   </p>
-                  <div className="cb-ov-sub">
-                    {status === "won" && "Checkmate — you outplayed the engine"}
-                    {status === "lost" && "The engine found a forced checkmate"}
-                    {status === "draw" && "The game ended in a draw"}
-                  </div>
-                  <div className="cb-ov-btns">
-                    <button className="cb-btn cb-btn-gold" onClick={resetGame}>
-                      Play Again
-                    </button>
-                    <button className="cb-btn" onClick={resetGame}>
-                      New Game
-                    </button>
-                  </div>
                 </div>
-              )}
 
-              <Chessboard
-                options={{
-                  position: fen,
-                  onPieceDrop: playerMove,
-                  boardOrientation: "white",
-                  darkSquareStyle: { backgroundColor: "#7a8450" },
-                  lightSquareStyle: { backgroundColor: "#e8dcb5" },
-                }}
-              />
-            </div>
-
-            {/* Player bar */}
-            <div className="cb-player-bar">
-              <div className="cb-player-info">
-                <div className="cb-avatar cb-avatar-you">🧑‍🌾</div>
-                <div>
-                  <div className="cb-pname">You</div>
-                  <div className="cb-prating">White</div>
+                <div className="cb-diff-grid">
+                  {DIFFICULTY_ORDER.map((key) => {
+                    const cfg = DIFFICULTY_CONFIG[key];
+                    return (
+                      <button
+                        key={key}
+                        className={`cb-diff-card cb-diff-card-${key}${difficulty === key ? " active" : ""}`}
+                        onClick={() => startGame(key)}
+                      >
+                        <span className="cb-diff-card-tag">{key}</span>
+                        <span className="cb-diff-card-icon">{cfg.icon}</span>
+                        <span className="cb-diff-card-label">{cfg.label}</span>
+                        <span className="cb-diff-card-desc">{cfg.desc}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-              <div className="cb-captured">
-                {capturedWhiteRef.current.join(" ")}
-              </div>
-            </div>
+            ) : (
+              <>
+                <button className="cb-back-btn" onClick={changeDifficulty}>
+                  ← Change Difficulty
+                </button>
+
+                <div className={`cb-status cb-status-${status}`}>
+                  {!isOver && <span className="cb-sdot" />}
+                  {statusLabel[status]}
+                </div>
+
+                {/* Bot bar */}
+                <div className="cb-player-bar">
+                  <div className="cb-player-info">
+                    <div className="cb-avatar cb-avatar-bot">🤖</div>
+                    <div>
+                      <div className="cb-pname">Junimo Bot</div>
+                      <div className="cb-prating">Black</div>
+                    </div>
+                  </div>
+                  <div className="cb-captured">
+                    {capturedBlackRef.current.join(" ")}
+                  </div>
+                  {isThinking && (
+                    <div className="cb-thinking">
+                      <span className="cb-think-dot" />
+                      <span className="cb-think-dot" />
+                      <span className="cb-think-dot" />
+                      thinking
+                    </div>
+                  )}
+                </div>
+
+                {/* Board */}
+                <div className="cb-board-wrap">
+                  <div className="cb-corner cb-corner-tl" />
+                  <div className="cb-corner cb-corner-tr" />
+                  <div className="cb-corner cb-corner-bl" />
+                  <div className="cb-corner cb-corner-br" />
+
+                  {captureBursts.map((b) => {
+                    const pos = squareToPercent(b.square);
+                    return (
+                      <div
+                        key={b.id}
+                        className="cb-capture-burst"
+                        style={{ left: pos.left, top: pos.top }}
+                      >
+                        <div className="cb-capture-burst-ring" />
+                        <span
+                          className="cb-capture-burst-leaf"
+                          style={
+                            {
+                              "--cbx": "20px",
+                              "--cby": "-24px",
+                            } as CSSProperties
+                          }
+                        >
+                          🍃
+                        </span>
+                        <span
+                          className="cb-capture-burst-leaf"
+                          style={
+                            {
+                              "--cbx": "-22px",
+                              "--cby": "-18px",
+                            } as CSSProperties
+                          }
+                        >
+                          🍂
+                        </span>
+                        <span
+                          className="cb-capture-burst-leaf"
+                          style={
+                            {
+                              "--cbx": "16px",
+                              "--cby": "20px",
+                            } as CSSProperties
+                          }
+                        >
+                          ✨
+                        </span>
+                        <span
+                          className="cb-capture-burst-leaf"
+                          style={
+                            {
+                              "--cbx": "-18px",
+                              "--cby": "18px",
+                            } as CSSProperties
+                          }
+                        >
+                          🍃
+                        </span>
+                      </div>
+                    );
+                  })}
+
+                  {isOver && (
+                    <div className="cb-overlay">
+                      <div className="cb-ov-icon">
+                        {status === "won"
+                          ? "🏆"
+                          : status === "lost"
+                            ? "🥀"
+                            : "🌾"}
+                      </div>
+                      <p
+                        className="cb-ov-title"
+                        style={{
+                          color:
+                            status === "won"
+                              ? "#8fce5c"
+                              : status === "lost"
+                                ? "#e0705a"
+                                : "var(--gold-light)",
+                        }}
+                      >
+                        {status === "won"
+                          ? "Victory"
+                          : status === "lost"
+                            ? "Defeated"
+                            : "Draw"}
+                      </p>
+                      <div className="cb-ov-sub">
+                        {status === "won" &&
+                          "Checkmate — you outplayed the engine"}
+                        {status === "lost" &&
+                          "The engine found a forced checkmate"}
+                        {status === "draw" && "The game ended in a draw"}
+                      </div>
+                      <div className="cb-ov-btns">
+                        <button
+                          className="cb-btn cb-btn-gold"
+                          onClick={resetGame}
+                        >
+                          Play Again
+                        </button>
+                        <button className="cb-btn" onClick={changeDifficulty}>
+                          Change Difficulty
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <Chessboard
+                    options={{
+                      position: fen,
+                      onPieceDrop: playerMove,
+                      onSquareClick: handleSquareClick,
+                      squareStyles,
+                      boardOrientation: "white",
+                      darkSquareStyle: { backgroundColor: "#7a8450" },
+                      lightSquareStyle: { backgroundColor: "#e8dcb5" },
+                    }}
+                  />
+                </div>
+
+                {/* Player bar */}
+                <div className="cb-player-bar">
+                  <div className="cb-player-info">
+                    <div className="cb-avatar cb-avatar-you">🧑‍🌾</div>
+                    <div>
+                      <div className="cb-pname">You</div>
+                      <div className="cb-prating">White</div>
+                    </div>
+                  </div>
+                  <div className="cb-captured">
+                    {capturedWhiteRef.current.join(" ")}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* RIGHT PANEL — desktop/tablet */}
           <div className="cb-panel cb-panel-r">
-            <p className="cb-slabel">Move Log</p>
-            <div className="cb-movelog" ref={moveLogRef}>
-              {pairs.length === 0 && (
-                <div
-                  style={{
-                    color: "var(--muted)",
-                    fontSize: "0.72rem",
-                    padding: "0.3rem 0",
-                  }}
-                >
-                  No moves yet…
+            {view === "categories" ? (
+              <>
+                <p className="cb-slabel">Get Started</p>
+                <div className="cb-hint-text">
+                  🌱 Pick a difficulty card in the middle to start your match.
                 </div>
-              )}
-              {pairs.map((pair, i) => {
-                const isLast = i === pairs.length - 1;
-                return (
-                  <div className="cb-move-pair" key={pair.num}>
-                    <span className="cb-move-num">{pair.num}.</span>
-                    <span
-                      className={`cb-move-w${isLast && !pair.black ? " cb-move-latest" : ""}`}
+              </>
+            ) : (
+              <>
+                <p className="cb-slabel">Move Log</p>
+                <div className="cb-movelog" ref={moveLogRef}>
+                  {pairs.length === 0 && (
+                    <div
+                      style={{
+                        color: "var(--muted)",
+                        fontSize: "0.72rem",
+                        padding: "0.3rem 0",
+                      }}
                     >
-                      {pair.white}
-                    </span>
-                    <span
-                      className={`cb-move-b${isLast && pair.black ? " cb-move-latest" : ""}`}
-                    >
-                      {pair.black ?? ""}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+                      No moves yet…
+                    </div>
+                  )}
+                  {pairs.map((pair, i) => {
+                    const isLast = i === pairs.length - 1;
+                    return (
+                      <div className="cb-move-pair" key={pair.num}>
+                        <span className="cb-move-num">{pair.num}.</span>
+                        <span
+                          className={`cb-move-w${isLast && !pair.black ? " cb-move-latest" : ""}`}
+                        >
+                          {pair.white}
+                        </span>
+                        <span
+                          className={`cb-move-b${isLast && pair.black ? " cb-move-latest" : ""}`}
+                        >
+                          {pair.black ?? ""}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
-        {/* ── MOBILE BOTTOM: actions ── */}
-        <div className="cb-mobile-bottom">
+        {/* ── MOBILE BOTTOM: actions — game view only ── */}
+        <div
+          className={`cb-mobile-bottom${view === "game" ? " is-visible" : ""}`}
+        >
           <button className="cb-chip cb-chip-gold" onClick={resetGame}>
             New Game
           </button>
           <button className="cb-chip cb-chip-danger" onClick={undoMove}>
             ↺ Undo
+          </button>
+          <div className="cb-mb-divider" />
+          <button className="cb-chip" onClick={changeDifficulty}>
+            ← Difficulty
           </button>
         </div>
       </div>

@@ -1,7 +1,6 @@
 import { Route, Routes } from "react-router";
 
 import ProfilePage from "./componentsdiy/ProfilePage";
-import ChallengeBotLux from "./bot/ChallengeBotLux";
 import PuzzleLuxPointsTest from "./componentsdiy/PuzzleLuxPointsTest";
 import LeaderboardLux from "./componentsdiy/LeaderboardLux";
 import Homepage from "./feature/Homepage";
@@ -23,8 +22,7 @@ function App() {
         <Route path="/kebijakanprivasi" element={<Privacy />} />
         <Route path="/kontak" element={<Kontak />} />
         <Route path="/puzzle" element={<PuzzleLuxPointsTest />} />
-        <Route path="/challenge" element={<ChallengeBotLux />} />
-        <Route path="/variant" element={<BotEasy />} />
+        <Route path="/bot" element={<BotEasy />} />
         <Route path="/leaderboard" element={<LeaderboardLux />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Routes>

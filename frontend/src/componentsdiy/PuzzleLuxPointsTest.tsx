@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess } from "chess.js";
@@ -15,17 +15,81 @@ type Puzzles = {
 };
 
 type Status = "playing" | "wrong" | "correct";
-type Theme = "skewer" | "pin" | "fork" | "middlegame";
+type View = "categories" | "puzzle";
 interface CaptureBurst {
   id: number;
   square: string;
 }
 
-const themes: { value: Theme; label: string }[] = [
-  { value: "skewer", label: "Skewer" },
-  { value: "pin", label: "Pin" },
-  { value: "fork", label: "Fork" },
-  { value: "middlegame", label: "Middlegame" },
+/* ── Category / theme data ──────────────────────────────────────────
+   "skewer", "pin", "fork" and "middlegame" are real theme keys that
+   exist in puzzle_1900.json. Everything else here is a dummy/placeholder
+   value with no matching puzzles yet — wire up real theme keys as they
+   become available and the grid + filtering will pick them up for free. */
+type CategoryItem = { value: string; label: string };
+type CategoryGroup = {
+  id: string;
+  label: string;
+  icon: string;
+  items: CategoryItem[];
+};
+
+const categoryGroups: CategoryGroup[] = [
+  {
+    id: "tactics",
+    label: "Tactics",
+    icon: "⚔️",
+    items: [
+      { value: "sacrifice", label: "Sacrifice" },
+      { value: "pin", label: "Pin" },
+      { value: "fork", label: "Fork" },
+      { value: "skewer", label: "Skewer" },
+      { value: "attraction", label: "Attraction" },
+      { value: "interference", label: "Interference" },
+      { value: "discoveredAttack", label: "Discovered Attack" },
+      { value: "discoveredCheck", label: "Discovered Check" },
+      { value: "doubleCheck", label: "Double Check" },
+      { value: "xRayAttack", label: "X-Ray Attack" },
+      { value: "deflection", label: "Deflection" },
+      { value: "clearance", label: "Clearance" },
+    ],
+  },
+  {
+    id: "mate",
+    label: "Mate",
+    icon: "♚",
+    items: [
+      { value: "smotheredMate", label: "Smothered Mate" },
+      { value: "arabianMate", label: "Arabian Mate" },
+      { value: "backRankMate", label: "BackRank Mate" },
+      { value: "pillsburysMate", label: "Pillsbury's Mate" },
+      { value: "morphysMate", label: "Morphy's Mate" },
+      { value: "swallowstailMate", label: "Swallow's Tail Mate" },
+      { value: "epauletteMate", label: "Epaulette Mate" },
+      { value: "blindSwineMate", label: "Blind Swine Mate" },
+      { value: "operaMate", label: "Opera Mate" },
+      { value: "killBoxMate", label: "Kill Box Mate" },
+      { value: "vukovicMate", label: "Vukovic Mate" },
+      { value: "dovetailMate", label: "Dove Tail Mate" },
+      { value: "hookMate", label: "Hook Mate" },
+      { value: "balestraMate", label: "Balestra Mate" },
+    ],
+  },
+  {
+    id: "strategic",
+    label: "Strategic",
+    icon: "🧭",
+    items: [
+      { value: "opening", label: "Opening" },
+      { value: "middlegame", label: "Middlegame" },
+      { value: "endgame", label: "Endgame Technique" },
+      { value: "advantage", label: "Advantage" },
+      { value: "exposedKing", label: "Exposed King" },
+      { value: "trappedPiece", label: "Trapped Piece" },
+      { value: "hangingPiece", label: "Hanging Piece" },
+      { value: "zugzwang", label: "Zugzwang" },
+    ],
+  },
 ];
 
 const pieceNames: Record<string, string> = {
@@ -69,11 +133,26 @@ const PuzzleLuxPointsTest = () => {
   const [moveIndex, setMoveIndex] = useState(0);
   const [playerColor, setPlayerColor] = useState<"w" | "b">("w");
   const [status, setStatus] = useState<Status>("playing");
-  const [theme, setTheme] = useState<Theme>("skewer");
+  const [theme, setTheme] = useState<string>("skewer");
   const [boardVisible, setBoardVisible] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
+  // Stays true once the player makes a mistake on this puzzle, even after
+  // the transient "wrong" flash reverts — that's when Hint should be offered.
+  const [canHint, setCanHint] = useState(false);
   const [captureBursts, setCaptureBursts] = useState<CaptureBurst[]>([]);
   const [burstId, setBurstId] = useState(0);
+
+  /* view = "categories" → grid of themes in the centre.
+     view = "puzzle"     → the actual chessboard in the centre. */
+  const [view, setView] = useState<View>("categories");
+  const [activeGroupId, setActiveGroupId] = useState<string>("tactics");
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const catScrollRef = useRef<HTMLDivElement | null>(null);
+
+  /* Tap/click-to-move: the square currently selected, and the legal
+     destination squares for the piece sitting on it (shown as dots). */
+  const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+  const [legalTargets, setLegalTargets] = useState<string[]>([]);
 
   const spawnCaptureBurst = (square: string) => {
     const id = burstId + 1;
@@ -93,14 +172,18 @@ const PuzzleLuxPointsTest = () => {
     Math.floor(Math.random() * filteredPuzzle.length),
   );
 
-  const currentPuzzle: Puzzles = filteredPuzzle[puzzleIndex];
+  const currentPuzzle: Puzzles | undefined = filteredPuzzle[puzzleIndex];
 
   const getRandomIndex = (length: number) => Math.floor(Math.random() * length);
 
   const reset = () => {
+    if (!currentPuzzle) return;
     setBoardVisible(false);
     setHint(null);
+    setCanHint(false);
     setCaptureBursts([]);
+    setSelectedSquare(null);
+    setLegalTargets([]);
     const newGame = new Chess(currentPuzzle.fen);
     setPlayerColor(newGame.turn() === "w" ? "b" : "w");
     setStatus("playing");
@@ -113,6 +196,7 @@ const PuzzleLuxPointsTest = () => {
   };
 
   const showHint = () => {
+    if (!currentPuzzle) return;
     const correctMove = currentPuzzle.moves[moveIndex];
     if (!correctMove) return;
     const square = correctMove.slice(0, 2);
@@ -128,10 +212,37 @@ const PuzzleLuxPointsTest = () => {
     if (currentPuzzle) reset();
   }, [puzzleIndex]);
 
-  const onPieceDrop = ({
-    sourceSquare,
-    targetSquare,
-  }: PieceDropHandlerArgs): boolean => {
+  /* Pick a theme from a grid card (or the left nav) → jump into the board. */
+  const selectTheme = (value: string) => {
+    setTheme(value);
+    setView("puzzle");
+  };
+
+  /* Left-panel nav: scroll the centre grid to a category section.
+     If we're currently looking at the board, hop back to the grid first. */
+  const goToSection = (id: string) => {
+    setActiveGroupId(id);
+    if (view !== "categories") {
+      setView("categories");
+      setTimeout(() => {
+        sectionRefs.current[id]?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 60);
+      return;
+    }
+    sectionRefs.current[id]?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
+
+  /* Shared by drag-and-drop and tap/click-to-move: try to play a move,
+     check it against the puzzle solution, and update state accordingly.
+     Returns true if the attempt was "handled" (legal chess move made). */
+  const attemptMove = (sourceSquare: string, targetSquare: string): boolean => {
+    if (!currentPuzzle) return false;
     if (!sourceSquare || !targetSquare || sourceSquare === targetSquare)
       return false;
 
@@ -150,7 +261,13 @@ const PuzzleLuxPointsTest = () => {
     if (currentPuzzle.moves[moveIndex] !== moveString) {
       setGame(newGame);
       setStatus("wrong");
-      setTimeout(() => setGame(new Chess(posBeforeWrong)), 1000);
+      setCanHint(true);
+      setSelectedSquare(null);
+      setLegalTargets([]);
+      setTimeout(() => {
+        setGame(new Chess(posBeforeWrong));
+        setStatus("playing");
+      }, 1000);
       return true;
     }
 
@@ -174,7 +291,79 @@ const PuzzleLuxPointsTest = () => {
     return true;
   };
 
+  const onPieceDrop = ({
+    sourceSquare,
+    targetSquare,
+  }: PieceDropHandlerArgs): boolean => {
+    setSelectedSquare(null);
+    setLegalTargets([]);
+    if (!sourceSquare || !targetSquare) return false;
+    return attemptMove(sourceSquare, targetSquare);
+  };
+
+  /* Tap/click-to-move:
+     - first click on your own piece → select it, show legal dots
+     - click again on the same square → deselect
+     - click a highlighted (legal) square → play the move
+     - click a different one of your own pieces → reselect */
+  const handleSquareClick = (square: string) => {
+    if (!currentPuzzle || status !== "playing") return;
+
+    if (selectedSquare && legalTargets.includes(square)) {
+      attemptMove(selectedSquare, square);
+      setSelectedSquare(null);
+      setLegalTargets([]);
+      return;
+    }
+
+    if (selectedSquare === square) {
+      setSelectedSquare(null);
+      setLegalTargets([]);
+      return;
+    }
+
+    const piece = game.get(square as any);
+    if (piece && piece.color === game.turn()) {
+      const moves = game.moves({
+        square: square as any,
+        verbose: true,
+      }) as Array<{
+        to: string;
+      }>;
+      setSelectedSquare(square);
+      setLegalTargets(moves.map((m) => m.to));
+    } else {
+      setSelectedSquare(null);
+      setLegalTargets([]);
+    }
+  };
+
+  /* Highlight the selected square and its legal destinations. Occupied
+     targets (captures) get a ring; empty targets get a small dot. */
+  const squareStyles = (() => {
+    const styles: Record<string, CSSProperties> = {};
+    if (selectedSquare) {
+      styles[selectedSquare] = {
+        background: "rgba(232,161,77,0.35)",
+      };
+    }
+    legalTargets.forEach((sq) => {
+      const occupied = !!game.get(sq as any);
+      styles[sq] = occupied
+        ? {
+            background:
+              "radial-gradient(circle, transparent 58%, rgba(232,161,77,0.6) 60%)",
+          }
+        : {
+            background:
+              "radial-gradient(circle, rgba(232,161,77,0.6) 20%, transparent 21%)",
+          };
+    });
+    return styles;
+  })();
+
   const computerMove = (pos: Chess, index: number) => {
+    if (!currentPuzzle) return;
     const move = currentPuzzle.moves[index];
     if (!move) return;
     const newGame = new Chess(pos.fen());
@@ -195,6 +384,10 @@ const PuzzleLuxPointsTest = () => {
   const progress = totalMoves
     ? (Math.min(moveIndex, totalMoves) / totalMoves) * 100
     : 0;
+
+  const currentThemeLabel =
+    categoryGroups.flatMap((g) => g.items).find((i) => i.value === theme)
+      ?.label ?? theme;
 
   return (
     <>
@@ -252,7 +445,8 @@ const PuzzleLuxPointsTest = () => {
           gap: 0.65rem;
           border-right: 3px solid var(--border);
           background: rgba(58,44,26,0.45);
-          overflow: hidden;
+          overflow-y: auto;
+          overflow-x: hidden;
           grid-area: left;
         }
         .plx-panel-r {
@@ -341,6 +535,92 @@ const PuzzleLuxPointsTest = () => {
           padding: 0.75rem 1.25rem;
           gap: 0.65rem; min-height: 0;
         }
+        .plx-center.is-categories {
+          align-items: stretch;
+          justify-content: flex-start;
+          width: 100%;
+        }
+
+        /* ── Category grid (centre, "categories" view) ── */
+        .plx-cat-scroll {
+          width: 100%; height: 100%;
+          overflow-y: auto; overflow-x: hidden;
+          padding-right: 4px;
+        }
+        .plx-cat-scroll::-webkit-scrollbar { width: 6px; }
+        .plx-cat-scroll::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 4px; }
+
+        .plx-cat-intro { margin: 0 0 1rem; }
+        .plx-cat-intro-title {
+          font-family: 'Baloo 2', cursive; font-weight: 700;
+          font-size: 1.3rem; color: var(--gold-light); margin: 0 0 0.2rem;
+        }
+        .plx-cat-intro-sub { font-size: 0.76rem; color: var(--muted); margin: 0; }
+
+        .plx-cat-section { margin-bottom: 1.75rem; scroll-margin-top: 10px; }
+        .plx-cat-heading {
+          display: flex; align-items: center; gap: 0.45rem;
+          font-family: 'Baloo 2', cursive; font-weight: 700;
+          font-size: 1.05rem; color: var(--gold-light);
+          margin: 0 0 0.65rem;
+          padding-bottom: 0.35rem;
+          border-bottom: 2px dashed var(--border);
+        }
+
+        .plx-cat-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+          gap: 0.65rem;
+        }
+        .plx-cat-card {
+          display: flex; flex-direction: column; justify-content: center;
+          gap: 0.15rem;
+          min-height: 68px;
+          padding: 0.75rem 0.9rem;
+          background: rgba(58,44,26,0.6);
+          border: 2px solid var(--border);
+          border-radius: 10px;
+          cursor: pointer;
+          text-align: left;
+          transition: all 0.18s;
+        }
+        .plx-cat-card:hover {
+          border-color: var(--gold-dim);
+          background: rgba(232,161,77,0.1);
+          transform: translateY(-2px);
+        }
+        .plx-cat-card.active {
+          border-color: var(--gold);
+          background: rgba(232,161,77,0.16);
+          box-shadow: 0 0 0 1px rgba(232,161,77,0.3);
+        }
+        .plx-cat-card-label {
+          font-family: 'Quicksand', sans-serif; font-weight: 700;
+          font-size: 0.82rem; color: var(--text);
+        }
+        .plx-cat-card.active .plx-cat-card-label { color: var(--gold-light); }
+        .plx-cat-card-count {
+          font-size: 0.6rem; color: var(--muted); letter-spacing: 0.03em;
+        }
+
+        /* ── Puzzle view (centre) ── */
+        .plx-back-btn {
+          align-self: flex-start;
+          display: inline-flex; align-items: center; gap: 0.35rem;
+          background: transparent; border: none;
+          color: var(--muted); font-family: 'Quicksand', sans-serif; font-weight: 600;
+          font-size: 0.74rem; cursor: pointer; padding: 0.2rem 0;
+          flex-shrink: 0; transition: color 0.15s;
+        }
+        .plx-back-btn:hover { color: var(--gold-light); }
+
+        .plx-empty {
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          gap: 0.5rem; padding: 2.5rem 1rem; text-align: center; color: var(--muted);
+        }
+        .plx-empty-icon { font-size: 2.2rem; }
+        .plx-empty-title { font-family: 'Baloo 2', cursive; font-size: 1.1rem; color: var(--gold-light); }
+        .plx-empty-sub { font-size: 0.78rem; max-width: 260px; }
 
         .plx-status {
           display: inline-flex; align-items: center; gap: 0.4rem;
@@ -448,7 +728,7 @@ const PuzzleLuxPointsTest = () => {
           z-index: 20;
         }
 
-        /* ── MOBILE top bar: theme pills ── */
+        /* ── MOBILE top bar ── */
         .plx-mobile-top {
           display: none;
           position: relative; z-index: 1;
@@ -460,13 +740,24 @@ const PuzzleLuxPointsTest = () => {
           background: rgba(58,44,26,0.4);
           flex-shrink: 0;
         }
-        .plx-mobile-top-themes {
+        .plx-mobile-top-left {
           display: flex; align-items: center; gap: 0.35rem;
           flex-shrink: 0;
         }
         .plx-mobile-top-stats {
           display: flex; align-items: center; gap: 0.5rem;
           flex-shrink: 0;
+        }
+        .plx-mb-back {
+          display: inline-flex; align-items: center; gap: 0.3rem;
+          background: rgba(58,44,26,0.6); border: 2px solid var(--border);
+          color: var(--muted); font-family: 'Quicksand', sans-serif; font-weight: 600;
+          font-size: 0.66rem; padding: 0.3rem 0.6rem; border-radius: 6px; cursor: pointer;
+        }
+        .plx-mb-back:hover { border-color: var(--gold-dim); color: var(--gold-light); }
+        .plx-mb-title {
+          font-family: 'Baloo 2', cursive; font-weight: 700;
+          font-size: 0.78rem; color: var(--gold-light);
         }
 
         /* ── MOBILE bottom bar: info + actions ── */
@@ -530,7 +821,6 @@ const PuzzleLuxPointsTest = () => {
           .plx-panel-r { display: none; }
 
           .plx-mobile-top    { display: flex; }
-          .plx-mobile-bottom { display: flex; }
 
           .plx-body {
             grid-template-columns: 1fr;
@@ -555,7 +845,12 @@ const PuzzleLuxPointsTest = () => {
           }
 
           .plx-prog-labels { font-size: 0.54rem; }
+
+          .plx-cat-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+          /* Only show the mobile action bar once a puzzle is on screen */
+          .plx-mobile-bottom.is-visible { display: flex; }
         }
+
 
         /* Tablet: narrow sidebar or collapse */
         @media (min-width: 681px) and (max-width: 900px) {
@@ -578,263 +873,348 @@ const PuzzleLuxPointsTest = () => {
       <div className="plx-page">
         <NavbarLux />
 
-        {/* ── MOBILE: theme pill bar (top) ── */}
+        {/* ── MOBILE top bar ── */}
         <div className="plx-mobile-top">
-          {/* Left: theme pills */}
-          <div className="plx-mobile-top-themes">
-            {themes.map((t) => (
+          <div className="plx-mobile-top-left">
+            {view === "puzzle" ? (
               <button
-                key={t.value}
-                className={`plx-mb-chip${theme === t.value ? " active" : ""}`}
-                onClick={() => setTheme(t.value)}
+                className="plx-mb-back"
+                onClick={() => setView("categories")}
               >
-                {t.label}
+                ← Categories
               </button>
-            ))}
+            ) : (
+              <span className="plx-mb-title">🌱 Puzzle Themes</span>
+            )}
           </div>
 
-          {/* Right: stats */}
-          <div className="plx-mobile-top-stats">
-            <div className="plx-mb-stat">
-              <span className="plx-mb-stat-l">Rating</span>
-              <span className="plx-mb-stat-v">
-                {currentPuzzle?.rating ?? "—"}
-              </span>
+          {view === "puzzle" && (
+            <div className="plx-mobile-top-stats">
+              <div className="plx-mb-stat">
+                <span className="plx-mb-stat-l">Rating</span>
+                <span className="plx-mb-stat-v">
+                  {currentPuzzle?.rating ?? "—"}
+                </span>
+              </div>
+              <div className="plx-mb-divider" />
+              <div className="plx-mb-stat">
+                <span className="plx-mb-stat-l">Play</span>
+                <span className="plx-mb-stat-v">
+                  {playerColor === "w" ? "♔ W" : "♚ B"}
+                </span>
+              </div>
+              <div className="plx-mb-divider" />
+              <div className="plx-mb-stat">
+                <span className="plx-mb-stat-l">Moves</span>
+                <span className="plx-mb-stat-v">{playerMoves}</span>
+              </div>
             </div>
-            <div className="plx-mb-divider" />
-            <div className="plx-mb-stat">
-              <span className="plx-mb-stat-l">Play</span>
-              <span className="plx-mb-stat-v">
-                {playerColor === "w" ? "♔ W" : "♚ B"}
-              </span>
-            </div>
-            <div className="plx-mb-divider" />
-            <div className="plx-mb-stat">
-              <span className="plx-mb-stat-l">Moves</span>
-              <span className="plx-mb-stat-v">{playerMoves}</span>
-            </div>
-          </div>
+          )}
         </div>
 
         <div className="plx-body">
-          {/* LEFT — theme filter (desktop/tablet) */}
+          {/* LEFT — category nav (desktop/tablet): click to scroll the grid */}
           <div className="plx-panel">
-            <p className="plx-slabel">🌱 Choose Theme</p>
-            {themes.map((t) => (
+            <p className="plx-slabel">📚 Categories</p>
+            {categoryGroups.map((g) => (
               <button
-                key={t.value}
-                className={`plx-tbtn${theme === t.value ? " active" : ""}`}
-                onClick={() => setTheme(t.value)}
+                key={g.id}
+                className={`plx-tbtn${
+                  view === "categories" && activeGroupId === g.id
+                    ? " active"
+                    : ""
+                }`}
+                onClick={() => goToSection(g.id)}
               >
-                {t.label}
+                {g.icon} {g.label}
               </button>
             ))}
           </div>
 
-          {/* CENTRE — board */}
-          <div className="plx-center">
-            <div className={`plx-status plx-status-${status}`}>
-              <span className="plx-sdot" />
-              {status === "playing" &&
-                `Find the best move for${playerColor === "w" ? " WHITE" : " BLACK"}`}
-              {status === "correct" && "Brilliant! Well played"}
-              {status === "wrong" && "Wrong — study and retry"}
-            </div>
+          {/* CENTRE — either the category grid, or the puzzle board */}
+          <div
+            className={`plx-center${view === "categories" ? " is-categories" : ""}`}
+          >
+            {view === "categories" ? (
+              <div className="plx-cat-scroll" ref={catScrollRef}>
+                <div className="plx-cat-intro">
+                  <p className="plx-cat-intro-title">🌱 Choose a Theme</p>
+                  <p className="plx-cat-intro-sub">
+                    Pick a puzzle theme below to jump straight into the board.
+                  </p>
+                </div>
 
-            <div className="plx-board-wrap">
-              {!boardVisible && (
-                <div className="plx-loading">Growing the puzzle…</div>
-              )}
-              <div
-                style={{
-                  opacity: boardVisible ? 1 : 0,
-                  transition: "opacity 0.2s ease",
-                }}
-              >
-                <Chessboard
-                  options={{
-                    onPieceDrop,
-                    position: game.fen(),
-                    boardOrientation: playerColor === "w" ? "white" : "black",
-                    darkSquareStyle: { backgroundColor: "#7a8450" },
-                    lightSquareStyle: { backgroundColor: "#e8dcb5" },
-                  }}
-                />
+                {categoryGroups.map((group) => (
+                  <div
+                    key={group.id}
+                    className="plx-cat-section"
+                    ref={(el) => {
+                      sectionRefs.current[group.id] = el;
+                    }}
+                  >
+                    <h3 className="plx-cat-heading">
+                      {group.icon} {group.label}
+                    </h3>
+                    <div className="plx-cat-grid">
+                      {group.items.map((item) => (
+                        <button
+                          key={item.value}
+                          className={`plx-cat-card${
+                            theme === item.value ? " active" : ""
+                          }`}
+                          onClick={() => selectTheme(item.value)}
+                        >
+                          <span className="plx-cat-card-label">
+                            {item.label}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
+            ) : (
+              <>
+                <button
+                  className="plx-back-btn"
+                  onClick={() => setView("categories")}
+                >
+                  ← Back to Categories
+                </button>
 
-              <div
-                className="plx-capture-layer"
-                style={{
-                  transform: playerColor === "b" ? "rotate(180deg)" : "none",
-                }}
-              >
-                {captureBursts.map((b) => {
-                  const pos = squareToPercent(b.square);
-                  return (
-                    <div
-                      key={b.id}
-                      className="plx-capture-burst"
-                      style={{ left: pos.left, top: pos.top }}
-                    >
+                {!currentPuzzle ? (
+                  <div className="plx-empty">
+                    <span className="plx-empty-icon">🌱</span>
+                    <span className="plx-empty-title">
+                      No puzzles yet for “{currentThemeLabel}”
+                    </span>
+                    <span className="plx-empty-sub">
+                      This theme is a placeholder for now — pick Pin, Fork,
+                      Skewer, or Middlegame to play a real puzzle.
+                    </span>
+                  </div>
+                ) : (
+                  <>
+                    <div className={`plx-status plx-status-${status}`}>
+                      <span className="plx-sdot" />
+                      {status === "playing" &&
+                        `Find the best move for${playerColor === "w" ? " WHITE" : " BLACK"}`}
+                      {status === "correct" && "Brilliant! Well played"}
+                      {status === "wrong" && "Wrong — study and retry"}
+                    </div>
+
+                    <div className="plx-board-wrap">
+                      {!boardVisible && (
+                        <div className="plx-loading">Loading the puzzle…</div>
+                      )}
                       <div
-                        className="plx-capture-burst-inner"
+                        style={{
+                          opacity: boardVisible ? 1 : 0,
+                          transition: "opacity 0.2s ease",
+                        }}
+                      >
+                        <Chessboard
+                          options={{
+                            onPieceDrop,
+                            onSquareClick: ({ square }: any) =>
+                              handleSquareClick(square),
+                            squareStyles,
+                            position: game.fen(),
+                            boardOrientation:
+                              playerColor === "w" ? "white" : "black",
+                            darkSquareStyle: { backgroundColor: "#7a8450" },
+                            lightSquareStyle: { backgroundColor: "#e8dcb5" },
+                          }}
+                        />
+                      </div>
+
+                      <div
+                        className="plx-capture-layer"
                         style={{
                           transform:
                             playerColor === "b" ? "rotate(180deg)" : "none",
                         }}
                       >
-                        <div className="plx-capture-burst-ring" />
-                        <span
-                          className="plx-capture-burst-leaf"
-                          style={
-                            {
-                              "--cbx": "20px",
-                              "--cby": "-24px",
-                            } as CSSProperties
-                          }
-                        >
-                          🍃
-                        </span>
-                        <span
-                          className="plx-capture-burst-leaf"
-                          style={
-                            {
-                              "--cbx": "-22px",
-                              "--cby": "-18px",
-                            } as CSSProperties
-                          }
-                        >
-                          🍂
-                        </span>
-                        <span
-                          className="plx-capture-burst-leaf"
-                          style={
-                            {
-                              "--cbx": "16px",
-                              "--cby": "20px",
-                            } as CSSProperties
-                          }
-                        >
-                          ✨
-                        </span>
-                        <span
-                          className="plx-capture-burst-leaf"
-                          style={
-                            {
-                              "--cbx": "-18px",
-                              "--cby": "18px",
-                            } as CSSProperties
-                          }
-                        >
-                          🍃
+                        {captureBursts.map((b) => {
+                          const pos = squareToPercent(b.square);
+                          return (
+                            <div
+                              key={b.id}
+                              className="plx-capture-burst"
+                              style={{ left: pos.left, top: pos.top }}
+                            >
+                              <div
+                                className="plx-capture-burst-inner"
+                                style={{
+                                  transform:
+                                    playerColor === "b"
+                                      ? "rotate(180deg)"
+                                      : "none",
+                                }}
+                              >
+                                <div className="plx-capture-burst-ring" />
+                                <span
+                                  className="plx-capture-burst-leaf"
+                                  style={
+                                    {
+                                      "--cbx": "20px",
+                                      "--cby": "-24px",
+                                    } as CSSProperties
+                                  }
+                                >
+                                  🍃
+                                </span>
+                                <span
+                                  className="plx-capture-burst-leaf"
+                                  style={
+                                    {
+                                      "--cbx": "-22px",
+                                      "--cby": "-18px",
+                                    } as CSSProperties
+                                  }
+                                >
+                                  🍂
+                                </span>
+                                <span
+                                  className="plx-capture-burst-leaf"
+                                  style={
+                                    {
+                                      "--cbx": "16px",
+                                      "--cby": "20px",
+                                    } as CSSProperties
+                                  }
+                                >
+                                  ✨
+                                </span>
+                                <span
+                                  className="plx-capture-burst-leaf"
+                                  style={
+                                    {
+                                      "--cbx": "-18px",
+                                      "--cby": "18px",
+                                    } as CSSProperties
+                                  }
+                                >
+                                  🍃
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {status === "correct" && (
+                        <div className="plx-overlay plx-ov-correct">
+                          <div className="plx-ov-icon">🏆</div>
+                          <div className="plx-ov-title">Brilliant!</div>
+                          <div className="plx-ov-sub">
+                            You found the winning combination.
+                          </div>
+                          <div className="plx-ov-btns">
+                            <button
+                              className="plx-btn plx-btn-gold"
+                              onClick={() =>
+                                setPuzzleIndex(
+                                  getRandomIndex(filteredPuzzle.length),
+                                )
+                              }
+                            >
+                              Next →
+                            </button>
+                            <button className="plx-btn" onClick={reset}>
+                              Retry
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="plx-prog">
+                      <div className="plx-prog-labels">
+                        <span>Progress</span>
+                        <span>
+                          {Math.min(moveIndex, totalMoves)} / {totalMoves} moves
                         </span>
                       </div>
+                      <div className="plx-prog-track">
+                        <div
+                          className="plx-prog-fill"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
-
-              {status === "correct" && (
-                <div className="plx-overlay plx-ov-correct">
-                  <div className="plx-ov-icon">🏆</div>
-                  <div className="plx-ov-title">Brilliant!</div>
-                  <div className="plx-ov-sub">
-                    You found the winning combination.
-                  </div>
-                  <div className="plx-ov-btns">
-                    <button
-                      className="plx-btn plx-btn-gold"
-                      onClick={() =>
-                        setPuzzleIndex(getRandomIndex(filteredPuzzle.length))
-                      }
-                    >
-                      Next →
-                    </button>
-                    <button className="plx-btn" onClick={reset}>
-                      Retry
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="plx-prog">
-              <div className="plx-prog-labels">
-                <span>Progress</span>
-                <span>
-                  {Math.min(moveIndex, totalMoves)} / {totalMoves} moves
-                </span>
-              </div>
-              <div className="plx-prog-track">
-                <div
-                  className="plx-prog-fill"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </div>
+                  </>
+                )}
+              </>
+            )}
           </div>
 
           {/* RIGHT — puzzle info + actions (desktop/tablet) */}
           <div className="plx-panel plx-panel-r">
-            <p className="plx-slabel">Puzzle Info</p>
-            <div className="plx-info-card">
-              <div className="plx-info-row">
-                <span className="plx-il">Rating</span>
-                <span className="plx-iv">{currentPuzzle?.rating ?? "—"}</span>
-              </div>
-              <div className="plx-info-row">
-                <span className="plx-il">Your moves</span>
-                <span className="plx-iv">{playerMoves}</span>
-              </div>
-              <div className="plx-info-row">
-                <span className="plx-il">You play</span>
-                <span className="plx-iv">
-                  {playerColor === "w" ? "♔ White" : "♚ Black"}
-                </span>
-              </div>
-            </div>
+            {view === "categories" ? (
+              <>
+                <p className="plx-slabel">Get Started</p>
+                <div className="plx-hint-text">
+                  🌱 Pick a theme card in the middle to start solving.
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="plx-slabel">Puzzle Info</p>
+                <div className="plx-info-card">
+                  <div className="plx-info-row">
+                    <span className="plx-il">Rating</span>
+                    <span className="plx-iv">
+                      {currentPuzzle?.rating ?? "—"}
+                    </span>
+                  </div>
+                  <div className="plx-info-row">
+                    <span className="plx-il">Your moves</span>
+                    <span className="plx-iv">{playerMoves}</span>
+                  </div>
+                  <div className="plx-info-row">
+                    <span className="plx-il">You play</span>
+                    <span className="plx-iv">
+                      {playerColor === "w" ? "♔ White" : "♚ Black"}
+                    </span>
+                  </div>
+                </div>
 
-            <p className="plx-slabel" style={{ marginTop: "0.2rem" }}>
-              Actions
-            </p>
-            <button className="plx-btn" onClick={reset}>
-              ↺ Reset
-            </button>
-            {/* <button
-              className="plx-btn"
-              onClick={() => setPuzzleIndex((p) => p + 1)}
-            >
-              Skip →
-            </button> */}
-            <button
-              className="plx-btn plx-btn-gold"
-              onClick={() =>
-                setPuzzleIndex(getRandomIndex(filteredPuzzle.length))
-              }
-            >
-              Next Puzzle
-            </button>
+                <p className="plx-slabel" style={{ marginTop: "0.2rem" }}>
+                  Actions
+                </p>
+                <button className="plx-btn" onClick={reset}>
+                  ↺ Reset
+                </button>
+                <button
+                  className="plx-btn plx-btn-gold"
+                  onClick={() =>
+                    setPuzzleIndex(getRandomIndex(filteredPuzzle.length))
+                  }
+                >
+                  Next Puzzle
+                </button>
 
-            {status === "wrong" && !hint && (
-              <button className="plx-btn plx-btn-hint" onClick={showHint}>
-                ◎ Hint
-              </button>
+                {canHint && !hint && status !== "correct" && (
+                  <button className="plx-btn plx-btn-hint" onClick={showHint}>
+                    ◎ Hint
+                  </button>
+                )}
+                {hint && <div className="plx-hint-text">◎ {hint}</div>}
+              </>
             )}
-            {hint && <div className="plx-hint-text">◎ {hint}</div>}
           </div>
         </div>
 
-        {/* ── MOBILE: action chip bar (bottom) ── */}
-        <div className="plx-mobile-bottom">
+        {/* ── MOBILE: action chip bar (bottom) — puzzle view only ── */}
+        <div
+          className={`plx-mobile-bottom${
+            view === "puzzle" && currentPuzzle ? " is-visible" : ""
+          }`}
+        >
           <button className="plx-mb-chip" onClick={reset}>
             ↺ Reset
           </button>
-          {/* <button
-            className="plx-mb-chip"
-            onClick={() => setPuzzleIndex((p) => p + 1)}
-          >
-            Skip →
-          </button> */}
           <button
             className="plx-mb-chip plx-mb-chip-gold"
             onClick={() =>
@@ -843,7 +1223,7 @@ const PuzzleLuxPointsTest = () => {
           >
             Next →
           </button>
-          {status === "wrong" && !hint && (
+          {canHint && !hint && status !== "correct" && (
             <>
               <div className="plx-mb-divider" />
               <button
