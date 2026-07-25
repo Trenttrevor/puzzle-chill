@@ -5,6 +5,12 @@ import { Chess } from "chess.js";
 import type { PieceDropHandlerArgs } from "react-chessboard";
 import puzzlesData from "@/data/puzzle_1900.json";
 import NavbarLux from "./NavbarLux";
+import {
+  playMoveSound,
+  playCaptureSound,
+  playWrongSound,
+  playSuccessSound,
+} from "@/lib/chessSound";
 
 type Puzzles = {
   id: string;
@@ -128,6 +134,34 @@ function squareToPercent(square: string): { left: string; top: string } {
   return { left, top };
 }
 
+/* ── Puzzle Elo rating (same idea as Lichess puzzle rating) ─────────────
+   Treat the puzzle's own rating as an "opponent". Your expected score
+   against it depends on the rating gap; the actual gain/loss is scaled
+   by how far off that expectation you were. K controls volatility —
+   this is the "parameter" for how much a given puzzle's difficulty
+   should swing your rating. */
+const ELO_STORAGE_KEY = "plx-player-elo";
+const DEFAULT_ELO = 1000;
+const ELO_K = 24;
+
+function calcExpectedScore(playerElo: number, puzzleElo: number): number {
+  return 1 / (1 + Math.pow(10, (puzzleElo - playerElo) / 400));
+}
+
+function calcEloDelta(
+  playerElo: number,
+  puzzleElo: number,
+  correct: boolean,
+): number {
+  const expected = calcExpectedScore(playerElo, puzzleElo);
+  const actual = correct ? 1 : 0;
+  let delta = Math.round(ELO_K * (actual - expected));
+  // Never let rounding produce a 0-point "win" or "loss" — always move at least 1.
+  if (correct && delta <= 0) delta = 1;
+  if (!correct && delta >= 0) delta = -1;
+  return delta;
+}
+
 const PuzzleLuxPointsTest = () => {
   const [game, setGame] = useState<Chess>(new Chess());
   const [moveIndex, setMoveIndex] = useState(0);
@@ -153,6 +187,38 @@ const PuzzleLuxPointsTest = () => {
      destination squares for the piece sitting on it (shown as dots). */
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [legalTargets, setLegalTargets] = useState<string[]>([]);
+
+  /* Player's puzzle Elo, persisted across sessions. */
+  const [playerElo, setPlayerElo] = useState<number>(DEFAULT_ELO);
+  // Guards against scoring twice on the same puzzle attempt (e.g. retrying
+  // after a wrong move, or solving the remaining moves after already failing).
+  const [puzzleScored, setPuzzleScored] = useState(false);
+  // Little "+8" / "-6" toast shown next to the status badge.
+  const [eloToast, setEloToast] = useState<number | null>(null);
+
+  useEffect(() => {
+    const saved =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem(ELO_STORAGE_KEY)
+        : null;
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      if (!Number.isNaN(parsed)) setPlayerElo(parsed);
+    }
+  }, []);
+
+  const scorePuzzle = (correct: boolean) => {
+    if (!currentPuzzle || puzzleScored) return;
+    setPuzzleScored(true);
+    const delta = calcEloDelta(playerElo, currentPuzzle.rating, correct);
+    const nextElo = Math.max(100, playerElo + delta);
+    setPlayerElo(nextElo);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(ELO_STORAGE_KEY, String(nextElo));
+    }
+    setEloToast(delta);
+    setTimeout(() => setEloToast(null), 1400);
+  };
 
   const spawnCaptureBurst = (square: string) => {
     const id = burstId + 1;
@@ -184,6 +250,8 @@ const PuzzleLuxPointsTest = () => {
     setCaptureBursts([]);
     setSelectedSquare(null);
     setLegalTargets([]);
+    setPuzzleScored(false);
+    setEloToast(null);
     const newGame = new Chess(currentPuzzle.fen);
     setPlayerColor(newGame.turn() === "w" ? "b" : "w");
     setStatus("playing");
@@ -264,6 +332,8 @@ const PuzzleLuxPointsTest = () => {
       setCanHint(true);
       setSelectedSquare(null);
       setLegalTargets([]);
+      playWrongSound();
+      scorePuzzle(false);
       setTimeout(() => {
         setGame(new Chess(posBeforeWrong));
         setStatus("playing");
@@ -273,6 +343,9 @@ const PuzzleLuxPointsTest = () => {
 
     if (move.captured) {
       spawnCaptureBurst(capturedSquare(move));
+      playCaptureSound();
+    } else {
+      playMoveSound();
     }
 
     setHint(null);
@@ -282,6 +355,8 @@ const PuzzleLuxPointsTest = () => {
 
     if (currentPuzzle.moves.length === nextIndex) {
       setStatus("correct");
+      setTimeout(() => playSuccessSound(), 150);
+      scorePuzzle(true);
       return true;
     }
 
@@ -374,6 +449,9 @@ const PuzzleLuxPointsTest = () => {
     });
     if (result?.captured) {
       spawnCaptureBurst(capturedSquare(result));
+      playCaptureSound();
+    } else {
+      playMoveSound();
     }
     setMoveIndex(index + 1);
     setGame(newGame);
@@ -636,6 +714,42 @@ const PuzzleLuxPointsTest = () => {
         .plx-sdot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; animation: sdot 2s infinite; flex-shrink: 0; }
         @keyframes sdot { 0%,100%{opacity:1} 50%{opacity:0.25} }
 
+        .plx-status-row {
+          display: flex; align-items: center; justify-content: center;
+          gap: 0.5rem; flex-shrink: 0; flex-wrap: wrap;
+        }
+        .plx-elo-badge {
+          position: relative;
+          display: inline-flex; align-items: center; gap: 0.35rem;
+          padding: 0.28rem 0.7rem;
+          border-radius: 100px; border: 2px solid var(--border);
+          background: rgba(58,44,26,0.4);
+          font-family: 'Quicksand', sans-serif;
+        }
+        .plx-elo-label {
+          font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.08em;
+          color: var(--muted); font-weight: 700;
+        }
+        .plx-elo-value {
+          font-size: 0.78rem; font-weight: 700; color: var(--gold-light);
+        }
+        .plx-elo-toast {
+          position: absolute; top: -4px; right: -6px;
+          transform: translateY(-100%);
+          font-family: 'Baloo 2', cursive; font-weight: 700; font-size: 0.7rem;
+          padding: 0.1rem 0.4rem; border-radius: 6px;
+          animation: plxEloToast 1.4s ease forwards;
+          white-space: nowrap;
+        }
+        .plx-elo-toast.up   { color: #8fce5c; background: rgba(143,206,92,0.16); border: 1px solid rgba(143,206,92,0.4); }
+        .plx-elo-toast.down { color: #e0705a; background: rgba(224,112,90,0.16); border: 1px solid rgba(224,112,90,0.4); }
+        @keyframes plxEloToast {
+          0%   { opacity: 0; transform: translateY(-80%); }
+          15%  { opacity: 1; transform: translateY(-130%); }
+          80%  { opacity: 1; transform: translateY(-130%); }
+          100% { opacity: 0; transform: translateY(-170%); }
+        }
+
         /* Board sizing — desktop */
         .plx-board-wrap {
           position: relative;
@@ -891,7 +1005,12 @@ const PuzzleLuxPointsTest = () => {
           {view === "puzzle" && (
             <div className="plx-mobile-top-stats">
               <div className="plx-mb-stat">
-                <span className="plx-mb-stat-l">Rating</span>
+                <span className="plx-mb-stat-l">You</span>
+                <span className="plx-mb-stat-v">{playerElo}</span>
+              </div>
+              <div className="plx-mb-divider" />
+              <div className="plx-mb-stat">
+                <span className="plx-mb-stat-l">Puzzle</span>
                 <span className="plx-mb-stat-v">
                   {currentPuzzle?.rating ?? "—"}
                 </span>
@@ -995,12 +1114,26 @@ const PuzzleLuxPointsTest = () => {
                   </div>
                 ) : (
                   <>
-                    <div className={`plx-status plx-status-${status}`}>
-                      <span className="plx-sdot" />
-                      {status === "playing" &&
-                        `Find the best move for${playerColor === "w" ? " WHITE" : " BLACK"}`}
-                      {status === "correct" && "Brilliant! Well played"}
-                      {status === "wrong" && "Wrong — study and retry"}
+                    <div className="plx-status-row">
+                      <div className={`plx-status plx-status-${status}`}>
+                        <span className="plx-sdot" />
+                        {status === "playing" &&
+                          `Find the best move for${playerColor === "w" ? " WHITE" : " BLACK"}`}
+                        {status === "correct" && "Brilliant! Well played"}
+                        {status === "wrong" && "Wrong — study and retry"}
+                      </div>
+                      <div className="plx-elo-badge">
+                        <span className="plx-elo-label">Rating</span>
+                        <span className="plx-elo-value">{playerElo}</span>
+                        {eloToast !== null && (
+                          <span
+                            key={eloToast + Date.now()}
+                            className={`plx-elo-toast${eloToast > 0 ? " up" : " down"}`}
+                          >
+                            {eloToast > 0 ? `+${eloToast}` : eloToast}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="plx-board-wrap">
@@ -1163,7 +1296,11 @@ const PuzzleLuxPointsTest = () => {
                 <p className="plx-slabel">Puzzle Info</p>
                 <div className="plx-info-card">
                   <div className="plx-info-row">
-                    <span className="plx-il">Rating</span>
+                    <span className="plx-il">Your Rating</span>
+                    <span className="plx-iv">{playerElo}</span>
+                  </div>
+                  <div className="plx-info-row">
+                    <span className="plx-il">Puzzle Rating</span>
                     <span className="plx-iv">
                       {currentPuzzle?.rating ?? "—"}
                     </span>
